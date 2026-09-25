@@ -183,7 +183,6 @@ as $$
     select not exists (select 1 from public.perfiles where usuario = lower(trim(p_usuario)));
 $$;
 
-
 -- ---------------------------------------------------------------------
 -- Partidas y puntos
 -- ---------------------------------------------------------------------
