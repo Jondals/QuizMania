@@ -1,0 +1,29 @@
+{
+  "name": "quizmania",
+  "version": "2.0.0",
+  "description": "Juego de trivia con tragaperras: 20 temas, 5 modos de juego, amigos y ranking.",
+  "scripts": {
+    "build": "tsc && node scripts/build.mjs",
+    "typecheck": "tsc",
+    "test": "node scripts/pruebas.mjs",
+    "dev": "node scripts/build.mjs && npx http-server dist -g -c-1 -p 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jondals/QuizMania.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jondals/QuizMania/issues"
+  },
+  "homepage": "https://github.com/Jondals/QuizMania#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}

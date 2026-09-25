@@ -1,0 +1,326 @@
+<!doctype html>
+<!--
+    index.html
+    Única página de QuizMania. Contiene todas las pantallas del juego
+    (inicio con la tragaperras y los modos, carga, pregunta, resultados y
+    ranking con amigos), los diálogos de perfil y ajustes y el reproductor
+    de música. Solo se ve una pantalla a la vez; main.ts decide cuál.
+    Los textos llevan data-texto para traducirse al inglés.
+-->
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QuizMania · Trivia con tragaperras</title>
+    <meta name="description" content="Juego de trivia: tira de la palanca de la tragaperras y responde preguntas del tema que salga.">
+    <meta name="theme-color" content="#0b0b12">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="img/favicon.png" type="image/png" sizes="48x48">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="barra-superior">
+        <button type="button" id="boton-inicio" class="marca" aria-label="Inicio" data-texto-aria="inicio">
+            <!-- Logo: tragaperras con palanca -->
+            <svg class="marca-icono" viewBox="0 0 64 56" width="44" height="38" aria-hidden="true" focusable="false">
+                <rect x="3" y="3" width="46" height="46" rx="10" fill="#0e0e18" stroke="#ff2e7e" stroke-width="3"/>
+                <rect x="9" y="12" width="10" height="28" rx="3" fill="#161624" stroke="#2c2c44" stroke-width="1.5"/>
+                <rect x="21" y="12" width="10" height="28" rx="3" fill="#161624" stroke="#22e5ff" stroke-width="2"/>
+                <rect x="33" y="12" width="10" height="28" rx="3" fill="#161624" stroke="#2c2c44" stroke-width="1.5"/>
+                <text x="14" y="30" fill="#ff2e7e" font-size="11" font-weight="800" text-anchor="middle" font-family="system-ui, sans-serif">?</text>
+                <text x="26" y="30" fill="#22e5ff" font-size="11" font-weight="800" text-anchor="middle" font-family="system-ui, sans-serif">7</text>
+                <text x="38" y="30" fill="#ffd84d" font-size="10" text-anchor="middle" font-family="system-ui, sans-serif">★</text>
+                <path d="M50 28 h4 a4 4 0 0 0 4 -4 v-6" fill="none" stroke="#ff2e7e" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="58" cy="14" r="5" fill="#22e5ff"/>
+            </svg>
+            <span class="marca-texto">
+                <span class="marca-nombre">QuizMania</span>
+                <span class="marca-lema" data-texto="lema">Trivia con tragaperras</span>
+            </span>
+        </button>
+        <div class="barra-acciones">
+            <button type="button" id="boton-ranking" class="boton-icono" aria-label="Ranking y amigos" data-texto-aria="rankingYAmigos">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>
+            </button>
+            <button type="button" id="boton-perfil" class="boton-perfil" aria-haspopup="dialog" aria-label="Tu perfil" data-texto-aria="tuPerfil">
+                <span id="avatar-cabecera" class="avatar" aria-hidden="true"></span>
+                <span id="nombre-cabecera" class="nombre-cabecera"></span>
+            </button>
+            <div class="selector-idioma" role="group" aria-label="Idioma" data-texto-aria="idioma">
+                <button type="button" class="boton-idioma" data-idioma="es" aria-pressed="true">ES</button>
+                <button type="button" class="boton-idioma" data-idioma="en" aria-pressed="false">EN</button>
+            </div>
+            <button type="button" id="boton-ajustes" class="boton-icono" aria-haspopup="dialog" aria-label="Ajustes" data-texto-aria="ajustes">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Pantalla 1: portada con los modos y la tragaperras -->
+        <section id="pantalla-inicio" class="pantalla pantalla-inicio">
+            <div class="portada">
+                <h1 class="titular" tabindex="-1">
+                    <span class="titular-linea"><span data-texto="titular1a">Gira los</span> <span class="rosa" data-texto="titular1b">rodillos</span>.</span>
+                    <span class="titular-linea"><span data-texto="titular2a">Descubre tu</span> <span class="turquesa" data-texto="titular2b">reto</span>.</span>
+                    <span class="titular-linea"><span data-texto="titular3a">Aprende y</span> <span class="amarillo" data-texto="titular3b">diviértete</span>.</span>
+                </h1>
+                <p class="portada-texto" data-texto="portadaTexto">Elige un modo, tira de la palanca y responde. Añade a tus amigos y pícate con ellos por la mejor puntuación.</p>
+                <dl class="datos">
+                    <div><dt data-texto="datoTemas">Temas</dt><dd>20</dd></div>
+                    <div><dt data-texto="datoModos">Modos</dt><dd class="turquesa">5</dd></div>
+                    <div><dt data-texto="idioma">Idioma</dt><dd class="amarillo">ES / EN</dd></div>
+                </dl>
+            </div>
+
+            <div class="tarjeta maquina">
+                <div class="tarjeta-cabecera">
+                    <span class="punto" aria-hidden="true"></span>
+                    <h2 id="titulo-tragaperras" class="tarjeta-titulo" data-texto="tiraDeLaPalanca">¡Tira de la palanca!</h2>
+                </div>
+                <div id="selector-modo" class="selector-modo" role="radiogroup" aria-label="Modo de juego" data-texto-aria="modoDeJuego"></div>
+                <p id="descripcion-modo" class="descripcion-modo"></p>
+                <div class="rodillos" aria-hidden="true">
+                    <div class="ventana"><div class="rodillo-tira"></div></div>
+                    <div class="ventana"><div class="rodillo-tira"></div></div>
+                    <div class="ventana"><div class="rodillo-tira"></div></div>
+                </div>
+                <button type="button" id="palanca" class="boton boton-turquesa palanca" data-sin-clic>
+                    <svg class="palanca-icono" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.9-4M4 5v4h4M4 13a8 8 0 0 0 14.9 4M20 19v-4h-4"/></svg>
+                    <span data-texto="palanca">Tirar de la palanca</span>
+                </button>
+                <p class="pie-maquina">
+                    <span id="resultado-tragaperras" class="resultado-tragaperras" aria-live="polite"></span>
+                    <span id="record-inicio" class="record-inicio"></span>
+                </p>
+            </div>
+        </section>
+
+        <!-- Pantalla 2: cargando preguntas -->
+        <section id="pantalla-carga" class="pantalla" hidden>
+            <div class="tarjeta tarjeta-carga">
+                <h2 class="solo-lectores" tabindex="-1" data-texto="cargandoPreguntas">Cargando preguntas…</h2>
+                <div id="indicador-carga" class="indicador-carga" aria-hidden="true"></div>
+                <p id="mensaje-carga" class="mensaje-carga" role="status"></p>
+                <div id="error-carga" class="error-carga" hidden>
+                    <p data-texto="errorCarga">No se han podido cargar las preguntas. Comprueba tu conexión.</p>
+                    <button type="button" id="boton-reintentar" class="boton boton-rosa" data-texto="volverATirar">Volver a tirar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pantalla 3: pregunta (también se usa para revisar) -->
+        <section id="pantalla-pregunta" class="pantalla" hidden>
+            <div id="tarjeta-pregunta" class="tarjeta tarjeta-pregunta">
+                <div class="cabecera-pregunta">
+                    <div class="insignias">
+                        <span id="insignia-tema" class="insignia"></span>
+                        <span id="insignia-modo" class="insignia insignia-modo"></span>
+                    </div>
+                    <span id="contador-preguntas" class="contador-preguntas"></span>
+                </div>
+                <div id="marcador" class="marcador">
+                    <span class="marcador-puntos">
+                        <strong id="marcador-puntos">0</strong> <span data-texto="pts">pts</span>
+                        <span id="puntos-ganados" class="puntos-ganados" aria-hidden="true"></span>
+                    </span>
+                    <span id="marcador-racha" class="marcador-racha" hidden></span>
+                    <span id="marcador-vidas" class="marcador-vidas" role="img" hidden></span>
+                    <span id="marcador-tiempo" class="marcador-tiempo" hidden></span>
+                </div>
+                <div id="barra-progreso" class="barra barra-progreso" aria-hidden="true"><div id="barra-progreso-relleno" class="barra-relleno"></div></div>
+                <div id="barra-tiempo" class="barra barra-tiempo" aria-hidden="true" hidden><div id="barra-tiempo-relleno" class="barra-relleno"></div></div>
+                <h2 id="enunciado" class="enunciado" tabindex="-1"><span id="numero-enunciado" class="numero-enunciado"></span> <span id="texto-enunciado"></span></h2>
+                <div id="lista-respuestas" class="lista-respuestas" role="group" aria-label="Respuestas" data-texto-aria="respuestas"></div>
+                <p id="aviso-local" class="aviso-local" hidden data-texto="preguntasLocales">Sin conexión: usando preguntas guardadas.</p>
+                <div id="controles-juego" class="controles-juego">
+                    <button type="button" id="boton-terminar" class="boton boton-fantasma" data-texto="terminar">Terminar partida</button>
+                </div>
+                <nav id="controles-revision" class="controles-revision" hidden aria-label="Revisión">
+                    <button type="button" id="boton-anterior" class="boton" data-texto="anterior">Anterior</button>
+                    <button type="button" id="boton-siguiente" class="boton" data-texto="siguiente">Siguiente</button>
+                    <span class="separador" aria-hidden="true"></span>
+                    <button type="button" id="boton-ver-resultados" class="boton" data-texto="verResultados">Ver resultados</button>
+                    <button type="button" class="boton boton-rosa boton-jugar-de-nuevo" data-texto="jugarDeNuevo">Jugar de nuevo</button>
+                </nav>
+            </div>
+        </section>
+
+        <!-- Pantalla 4: resultados -->
+        <section id="pantalla-resultados" class="pantalla pantalla-resultados" hidden>
+            <p class="insignia insignia-exito"><span class="punto" aria-hidden="true"></span> <span id="modo-resultados"></span> · <span id="tema-resultados"></span></p>
+            <h2 id="mensaje-resultado" class="mensaje-resultado" tabindex="-1"></h2>
+            <p class="puntos-finales"><strong id="puntos-finales">0</strong> <span data-texto="puntos">puntos</span></p>
+            <p id="aviso-record" class="aviso-record" hidden data-texto="nuevoRecord">🏆 Has batido tu récord personal</p>
+            <dl class="resumen">
+                <div class="resumen-aciertos"><dt data-texto="aciertos">Aciertos</dt><dd id="puntuacion"></dd></div>
+                <div class="resumen-precision"><dt data-texto="precision">Precisión</dt><dd id="porcentaje"></dd></div>
+                <div class="resumen-racha"><dt data-texto="mejorRacha">Mejor racha</dt><dd id="mejor-racha"></dd></div>
+                <div class="resumen-record"><dt data-texto="record">Récord</dt><dd id="record-modo"></dd></div>
+            </dl>
+
+            <div id="bloque-amigos" class="tarjeta bloque-amigos" hidden>
+                <div class="bloque-cabecera">
+                    <h3 data-texto="entreTusAmigos">Entre tus amigos</h3>
+                    <span id="posicion-amigos" class="posicion-amigos"></span>
+                </div>
+                <ol id="lista-amigos-resultado" class="lista-ranking"></ol>
+                <div id="invitar-amigos" class="invitar-amigos" hidden>
+                    <p data-texto="invitarTexto">Añade amigos para picarte con ellos</p>
+                    <button type="button" id="boton-invitar-resultados" class="boton" data-texto="invitar">Invitar amigos</button>
+                </div>
+            </div>
+
+            <div class="botonera">
+                <button type="button" class="boton boton-rosa boton-jugar-de-nuevo" data-texto="jugarDeNuevo">Jugar de nuevo</button>
+                <button type="button" id="boton-revisar" class="boton" data-texto="revisar">Revisar respuestas</button>
+                <button type="button" class="boton boton-ir-ranking" data-texto="verRanking">Ver ranking</button>
+            </div>
+        </section>
+
+        <!-- Pantalla 5: ranking y amigos -->
+        <section id="pantalla-ranking" class="pantalla pantalla-ranking" hidden>
+            <div class="cabecera-seccion">
+                <button type="button" id="boton-volver-ranking" class="boton boton-fantasma"><span aria-hidden="true">←</span> <span data-texto="volver">Volver</span></button>
+                <h2 class="titulo-seccion" tabindex="-1" data-texto="rankingYAmigos">Ranking y amigos</h2>
+            </div>
+            <p id="aviso-offline" class="aviso-offline" hidden data-texto="onlineNoDisponible">El modo online no está disponible ahora mismo.</p>
+
+            <div class="rejilla-social">
+                <div class="tarjeta panel panel-ranking">
+                    <div class="tarjeta-cabecera">
+                        <span class="punto" aria-hidden="true"></span>
+                        <h3 class="tarjeta-titulo" data-texto="clasificacion">Clasificación</h3>
+                        <span id="mi-posicion" class="mi-posicion"></span>
+                    </div>
+                    <div id="pestanas-modo" class="pestanas"></div>
+                    <div class="selector-ambito" role="group">
+                        <button type="button" class="boton-ambito" data-ambito="amigos" aria-pressed="true" data-texto="amigos">Amigos</button>
+                        <button type="button" class="boton-ambito" data-ambito="global" aria-pressed="false" data-texto="global">Global</button>
+                    </div>
+                    <ol id="lista-ranking" class="lista-ranking"></ol>
+                    <p id="estado-ranking" class="estado-lista" role="status"></p>
+                </div>
+
+                <div class="columna-social">
+                    <div class="tarjeta panel">
+                        <div class="tarjeta-cabecera">
+                            <span class="punto" aria-hidden="true"></span>
+                            <h3 class="tarjeta-titulo" data-texto="amigos">Amigos</h3>
+                        </div>
+                        <div class="mi-codigo">
+                            <span class="etiqueta" data-texto="tuCodigo">Tu código de amigo</span>
+                            <strong id="codigo-social" class="codigo">······</strong>
+                            <div class="botonera botonera--izquierda">
+                                <button type="button" id="boton-copiar-codigo-social" class="boton boton-pequeno" data-texto="copiar">Copiar</button>
+                                <button type="button" id="boton-compartir" class="boton boton-pequeno boton-turquesa" data-texto="compartir">Compartir</button>
+                            </div>
+                            <p id="mensaje-codigo-social" class="mensaje" aria-live="polite"></p>
+                        </div>
+                        <form id="formulario-amigo" class="formulario-amigo" novalidate>
+                            <label for="campo-codigo-amigo" class="etiqueta" data-texto="codigoAmigo">Código de tu amigo</label>
+                            <div class="fila-formulario">
+                                <input type="text" id="campo-codigo-amigo" maxlength="8" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="ABC123">
+                                <button type="submit" class="boton boton-rosa" data-texto="anadir">Añadir</button>
+                            </div>
+                            <p id="mensaje-amigo" class="mensaje" aria-live="polite"></p>
+                        </form>
+                        <ul id="lista-amigos" class="lista-amigos" data-vacia="true"></ul>
+                    </div>
+
+                    <div class="tarjeta panel">
+                        <div class="tarjeta-cabecera">
+                            <span class="punto punto--amarillo" aria-hidden="true"></span>
+                            <h3 class="tarjeta-titulo" data-texto="tusRecords">Tus récords en este dispositivo</h3>
+                        </div>
+                        <dl id="lista-records" class="lista-records"></dl>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Reproductor flotante de YouTube/Spotify (aparece al pegar un link) -->
+    <aside id="reproductor" class="reproductor" hidden aria-label="Reproductor de música" data-texto-aria="reproductor">
+        <div class="reproductor-cabecera">
+            <span aria-hidden="true">♪</span>
+            <span data-texto="musica">Música</span>
+            <button type="button" id="boton-plegar-reproductor" class="boton-icono boton-icono--pequeno" aria-expanded="true" aria-label="Ocultar reproductor">▾</button>
+        </div>
+        <div id="reproductor-contenido" class="reproductor-contenido"></div>
+    </aside>
+
+    <!-- Perfil: nombre, avatar y código de amigo -->
+    <dialog id="dialogo-perfil" class="dialogo" aria-labelledby="titulo-perfil">
+        <div class="dialogo-contenido">
+            <div class="dialogo-cabecera">
+                <h2 id="titulo-perfil" data-texto="tuPerfil">Tu perfil</h2>
+                <form method="dialog"><button class="boton-icono" aria-label="Cerrar" data-texto-aria="cerrar">✕</button></form>
+            </div>
+            <div class="perfil-vista">
+                <span id="vista-avatar" class="avatar avatar--grande" aria-hidden="true"></span>
+                <div class="campo campo--flexible">
+                    <label for="campo-nombre" data-texto="nombre">Nombre</label>
+                    <input type="text" id="campo-nombre" autocomplete="nickname" spellcheck="false">
+                </div>
+            </div>
+            <div class="campo">
+                <span class="etiqueta" id="etiqueta-avatar" data-texto="avatar">Avatar</span>
+                <div id="rejilla-avatares" class="rejilla-avatares" role="radiogroup" aria-labelledby="etiqueta-avatar"></div>
+            </div>
+            <div class="campo">
+                <span class="etiqueta" id="etiqueta-color" data-texto="colorAvatar">Color</span>
+                <div id="rejilla-colores" class="rejilla-colores" role="radiogroup" aria-labelledby="etiqueta-color"></div>
+            </div>
+            <div class="campo mi-codigo">
+                <span class="etiqueta" data-texto="tuCodigo">Tu código de amigo</span>
+                <div class="fila-formulario">
+                    <strong id="codigo-perfil" class="codigo">······</strong>
+                    <button type="button" id="boton-copiar-codigo" class="boton boton-pequeno" data-texto="copiar">Copiar</button>
+                </div>
+                <p id="mensaje-codigo-perfil" class="mensaje" aria-live="polite"></p>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Panel de ajustes -->
+    <dialog id="dialogo-ajustes" class="dialogo" aria-labelledby="titulo-ajustes">
+        <div class="dialogo-contenido">
+            <div class="dialogo-cabecera">
+                <h2 id="titulo-ajustes" data-texto="ajustes">Ajustes</h2>
+                <form method="dialog"><button class="boton-icono" aria-label="Cerrar" data-texto-aria="cerrar">✕</button></form>
+            </div>
+
+            <div class="campo">
+                <label for="volumen-musica" data-texto="volumenMusica">Volumen de la música</label>
+                <div class="campo-slider">
+                    <input type="range" id="volumen-musica" min="0" max="100" step="1" value="50">
+                    <output id="valor-volumen-musica" for="volumen-musica">50%</output>
+                </div>
+            </div>
+
+            <div class="campo">
+                <label for="volumen-efectos" data-texto="volumenEfectos">Volumen de los efectos</label>
+                <div class="campo-slider">
+                    <input type="range" id="volumen-efectos" min="0" max="100" step="1" value="70">
+                    <output id="valor-volumen-efectos" for="volumen-efectos">70%</output>
+                </div>
+            </div>
+
+            <form id="formulario-musica" class="campo" novalidate>
+                <label for="enlace-musica" data-texto="enlaceMusica">Pega un link de YouTube o Spotify</label>
+                <input type="text" id="enlace-musica" inputmode="url" autocomplete="off" spellcheck="false"
+                       placeholder="https://youtube.com/… · https://open.spotify.com/…" aria-describedby="mensaje-musica">
+                <div class="botonera botonera--izquierda">
+                    <button type="submit" class="boton boton-rosa" data-texto="reproducir">Reproducir</button>
+                    <button type="button" id="boton-quitar-musica" class="boton" data-texto="quitarMusica">Quitar música</button>
+                </div>
+                <p id="mensaje-musica" class="mensaje-musica" aria-live="polite"></p>
+            </form>
+        </div>
+    </dialog>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
