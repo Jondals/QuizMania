@@ -43,6 +43,11 @@ create table if not exists public.perfiles (
 alter table public.perfiles add column if not exists nombre text
     check (nombre is null or char_length(nombre) between 1 and 24);
 
+-- Código de amigo: 6 letras y números sin los que se confunden (sin I, O, 0 ni 1).
+-- Se reparte solo al crear el perfil (trigger poner_codigo_amigo).
+alter table public.perfiles add column if not exists codigo text unique
+    check (codigo is null or codigo ~ '^[A-HJ-NP-Z2-9]{6}$');
+
 create index if not exists perfiles_puntos_totales on public.perfiles (puntos_totales desc);
 
 create table if not exists public.records (
@@ -170,6 +175,48 @@ exception when others then
     raise warning 'QuizMania: no se pudieron confirmar las cuentas antiguas (%).', sqlerrm;
 end;
 $$;
+
+
+-- Genera un código de amigo que no tenga nadie.
+create or replace function public.generar_codigo_amigo()
+returns text
+language plpgsql
+volatile
+set search_path = ''
+as $$
+declare
+    v_alfabeto text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    v_codigo   text;
+begin
+    loop
+        v_codigo := '';
+        for i in 1..6 loop
+            v_codigo := v_codigo || substr(v_alfabeto, 1 + floor(random() * length(v_alfabeto))::int, 1);
+        end loop;
+        exit when not exists (select 1 from public.perfiles where codigo = v_codigo);
+    end loop;
+    return v_codigo;
+end;
+$$;
+
+create or replace function public.poner_codigo_amigo()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+    new.codigo := coalesce(new.codigo, public.generar_codigo_amigo());
+    return new;
+end;
+$$;
+
+drop trigger if exists al_crear_perfil_codigo on public.perfiles;
+create trigger al_crear_perfil_codigo
+    before insert on public.perfiles
+    for each row execute function public.poner_codigo_amigo();
+
+-- Jugadores que ya existían sin código.
+update public.perfiles set codigo = public.generar_codigo_amigo() where codigo is null;
 
 
 -- Indica si un nombre de usuario está libre (para avisar antes de registrarse).
@@ -314,6 +361,7 @@ $$;
 -- Amigos (sin grupos: la amistad es entre dos jugadores y es mutua)
 -- ---------------------------------------------------------------------
 
+-- Añade un amigo por su código de amigo o por su nombre de usuario.
 create or replace function public.anadir_amigo(p_usuario text)
 returns json
 language plpgsql
@@ -327,7 +375,13 @@ begin
     if v_uid is null then
         raise exception 'no-autenticado';
     end if;
-    select * into v_amigo from public.perfiles where usuario = lower(trim(p_usuario));
+    -- Primero como código (se ignoran espacios, guiones y #), luego como usuario.
+    select * into v_amigo from public.perfiles
+        where codigo = upper(regexp_replace(coalesce(p_usuario, ''), '[[:space:]#@-]', '', 'g'));
+    if v_amigo.id is null then
+        select * into v_amigo from public.perfiles
+            where usuario = lower(regexp_replace(coalesce(p_usuario, ''), '[[:space:]@]', '', 'g'));
+    end if;
     if v_amigo.id is null then
         raise exception 'usuario-no-existe';
     end if;
@@ -446,10 +500,36 @@ end;
 $$;
 
 
+-- ---------------------------------------------------------------------
+-- Borrar la cuenta
+-- ---------------------------------------------------------------------
+
+-- Borra la cuenta del jugador que la llama: su usuario de auth y, en
+-- cascada, su perfil, récords, partidas y amistades. (La foto se borra
+-- antes desde el juego con la API de Storage, que es la única forma
+-- permitida de borrar archivos.)
+create or replace function public.borrar_mi_cuenta()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+    if auth.uid() is null then
+        raise exception 'no-autenticado';
+    end if;
+    delete from auth.users where id = auth.uid();
+end;
+$$;
+
+
 -- Permisos de las funciones.
 revoke execute on function public.crear_perfil() from public, anon, authenticated;
 revoke execute on function public.confirmar_usuario() from public, anon, authenticated;
+revoke execute on function public.generar_codigo_amigo() from public, anon, authenticated;
+revoke execute on function public.poner_codigo_amigo() from public, anon, authenticated;
 revoke execute on function public.cambiar_nombre(text) from public, anon;
+revoke execute on function public.borrar_mi_cuenta() from public, anon;
 revoke execute on function public.registrar_partida(text, text, integer, integer, integer) from public, anon;
 revoke execute on function public.anadir_amigo(text) from public, anon;
 revoke execute on function public.quitar_amigo(uuid) from public, anon;
@@ -466,6 +546,7 @@ grant execute on function public.mis_amigos() to authenticated;
 grant execute on function public.avatar_actualizado() to authenticated;
 grant execute on function public.quitar_avatar() to authenticated;
 grant execute on function public.cambiar_nombre(text) to authenticated;
+grant execute on function public.borrar_mi_cuenta() to authenticated;
 
 
 -- ---------------------------------------------------------------------
@@ -499,3 +580,10 @@ drop policy if exists "avatares: borrar de mi carpeta" on storage.objects;
 create policy "avatares: borrar de mi carpeta" on storage.objects
     for delete to authenticated
     using (bucket_id = 'avatares' and (storage.foldername(name))[1] = auth.uid()::text);
+
+
+-- ---------------------------------------------------------------------
+-- Avisa a la API de Supabase (PostgREST) de que recargue el esquema, para
+-- que las funciones nuevas se puedan usar al momento.
+-- ---------------------------------------------------------------------
+notify pgrst, 'reload schema';

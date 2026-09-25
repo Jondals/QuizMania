@@ -34,6 +34,13 @@ export function mostrarPantalla(nombre: NombrePantalla): void {
     for (const [nombrePantalla, id] of Object.entries(IDS_PANTALLAS)) {
         obtenerElemento(id).hidden = nombrePantalla !== nombre;
     }
+    // En la cabecera se marca la sección actual: Ranking, o Jugar para todo lo demás.
+    const seccion = nombre === "ranking" ? "boton-ranking" : "nav-jugar";
+    for (const id of ["nav-jugar", "boton-ranking"]) {
+        const enlace = document.getElementById(id);
+        if (id === seccion) enlace?.setAttribute("aria-current", "page");
+        else enlace?.removeAttribute("aria-current");
+    }
     const titulo = obtenerElemento(IDS_PANTALLAS[nombre]).querySelector<HTMLElement>("h1, h2");
     titulo?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });

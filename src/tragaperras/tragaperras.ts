@@ -5,8 +5,11 @@
  * el del tema elegido al azar.
  *
  * Cada rodillo es una "tira" vertical de iconos dentro de una ventana que
- * solo deja ver uno. Para girar se rellena la tira con iconos al azar
- * terminando en el ganador y se desplaza hacia arriba con una transición CSS.
+ * enseña el icono del centro entero y asoma medio icono por arriba y por
+ * abajo, como en una tragaperras de verdad. El CSS deja un hueco arriba de
+ * la tira para que el icono número N quede centrado con translateY(-N·alto).
+ * Para girar se rellena la tira con iconos al azar terminando en el ganador
+ * (y uno más que asoma debajo) y se desplaza con una transición CSS.
  */
 
 import { reproducirParadaRodillo } from "../audio/efectos";
@@ -37,14 +40,23 @@ function crearSimbolo(icono: string): HTMLElement {
 }
 
 /**
- * Pone un icono al azar en cada rodillo (estado inicial de la máquina).
+ * Transformación que deja centrado el icono de la posición indicada.
+ * @param posicion Posición del icono en la tira.
+ */
+function centrarEn(posicion: number): string {
+    return `translateY(calc(var(--altura-simbolo) * -${posicion}))`;
+}
+
+/**
+ * Pone tres iconos al azar en cada rodillo, con el del medio centrado
+ * (estado inicial de la máquina).
  * @param tiras Tiras de los rodillos.
  */
 export function prepararRodillos(tiras: readonly HTMLElement[]): void {
     tiras.forEach((tira) => {
         tira.style.transition = "none";
-        tira.style.transform = "translateY(0)";
-        tira.replaceChildren(crearSimbolo(elegirAlAzar(TEMAS).icono));
+        tira.style.transform = centrarEn(1);
+        tira.replaceChildren(...Array.from({ length: 3 }, () => crearSimbolo(elegirAlAzar(TEMAS).icono)));
     });
 }
 
@@ -62,17 +74,22 @@ function prefiereMovimientoReducido(): boolean {
  * @param posicion Posición del rodillo (0, 1, 2), para escalonar la parada.
  */
 function girarRodillo(tira: HTMLElement, iconoGanador: string, posicion: number): Promise<void> {
-    const iconoVisible = tira.lastElementChild?.textContent ?? elegirAlAzar(TEMAS).icono;
+    // Los tres iconos que se ven ahora (arriba, centro y abajo) siguen en su sitio.
+    const simbolos = [...tira.children].map((simbolo) => simbolo.textContent ?? "");
+    const centro = simbolos.length - 2;
+    const visibles = simbolos.slice(Math.max(centro - 1, 0), centro + 2);
+    while (visibles.length < 3) visibles.unshift(elegirAlAzar(TEMAS).icono);
     const cantidadAlAzar = ICONOS_POR_GIRO + posicion * ICONOS_EXTRA_POR_RODILLO;
     const iconos = [
-        iconoVisible,
+        ...visibles,
         ...Array.from({ length: cantidadAlAzar }, () => elegirAlAzar(TEMAS).icono),
         iconoGanador,
+        elegirAlAzar(TEMAS).icono,
     ];
 
-    // Se vuelve al principio sin animación con el icono que ya se veía arriba.
+    // Se vuelve al principio sin animación enseñando los mismos iconos que antes.
     tira.style.transition = "none";
-    tira.style.transform = "translateY(0)";
+    tira.style.transform = centrarEn(1);
     tira.replaceChildren(...iconos.map(crearSimbolo));
     void tira.offsetHeight; // Obliga al navegador a aplicar la posición inicial.
 
@@ -81,7 +98,7 @@ function girarRodillo(tira: HTMLElement, iconoGanador: string, posicion: number)
         : DURACION_PRIMER_RODILLO + posicion * RETRASO_ENTRE_RODILLOS;
 
     tira.style.transition = `transform ${duracion}ms cubic-bezier(0.12, 0.8, 0.22, 1.04)`;
-    tira.style.transform = `translateY(calc(var(--altura-simbolo) * -${iconos.length - 1}))`;
+    tira.style.transform = centrarEn(iconos.length - 2);
 
     return new Promise((resolver) => {
         setTimeout(() => {

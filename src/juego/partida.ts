@@ -15,7 +15,7 @@ import { reproducirEfecto } from "../audio/efectos";
 import type { Modo } from "../config/modos";
 import type { Tema } from "../config/temas";
 import { obtenerIdioma, texto } from "../i18n/textos";
-import { abrirEntrar, mensajeDeErrorCuenta } from "../cuenta/interfaz-cuenta";
+import { mensajeDeErrorCuenta } from "../cuenta/interfaz-cuenta";
 import { hayOnline, obtenerPerfil, registrarPartidaOnline } from "../cuenta/sesion";
 import { mostrarComparacionConAmigos } from "../online/social";
 import { leerRecord, registrarPartidaLocal } from "../perfil/records";
@@ -479,6 +479,7 @@ export function terminarPartida(): void {
     ultimaVictoria = ultimoNuevoRecord || (total > 0 && aciertos / total >= PORCENTAJE_PARA_GANAR);
     pintarResultados();
     mostrarPantalla("resultados");
+    animarContador(elementos.puntosFinales, puntos);
     reproducirEfecto(ultimaVictoria ? "victoria" : "derrota");
 
     /** Guarda la partida en Supabase y repinta con el resultado del servidor. */
@@ -512,6 +513,30 @@ function elegirMensajeFinal(aciertos: number, total: number): string {
     return texto("mensajeMalo");
 }
 
+/** Duración de la cuenta de los puntos finales (ms). */
+const DURACION_CONTADOR = 900;
+
+/**
+ * Cuenta desde 0 hasta la cifra final, frenando al llegar (efecto marcador).
+ * @param elemento Donde se escribe el número.
+ * @param final Cifra final.
+ */
+function animarContador(elemento: HTMLElement, final: number): void {
+    const idioma = obtenerIdioma();
+    if (final <= 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        elemento.textContent = formatearPuntos(final, idioma);
+        return;
+    }
+    const inicio = performance.now();
+    const paso = (ahora: number) => {
+        const progreso = Math.min((ahora - inicio) / DURACION_CONTADOR, 1);
+        const suavizado = 1 - (1 - progreso) ** 3;
+        elemento.textContent = formatearPuntos(Math.round(final * suavizado), idioma);
+        if (progreso < 1) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+}
+
 /** Pinta la pantalla de resultados (también al cambiar de idioma). */
 export function pintarResultados(): void {
     const { modo, tema, historial, aciertos, puntos, mejorRacha } = estadoPartida;
@@ -530,10 +555,6 @@ export function pintarResultados(): void {
     elementos.botonRevisar.hidden = total === 0;
 }
 
-/** Abre el registro desde el aviso de invitado de los resultados. */
-export function conectarAvisoInvitado(): void {
-    elementos.avisoInvitado.querySelector("button")?.addEventListener("click", () => abrirEntrar("registro"));
-}
 
 /** Vuelve a la pantalla de resultados (desde la revisión). */
 export function mostrarResultados(): void {

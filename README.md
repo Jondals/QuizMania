@@ -17,11 +17,14 @@ Juego de trivia con tragaperras: **elige un modo, tira de la palanca**, los rodi
   - 🎰 **Todo o nada**: 10 preguntas con puntos ×2, pero un fallo y pierdes todos los puntos.
 - **Puntos**: 100 por acierto, +20 por cada acierto seguido (hasta +100), hasta +50 por rapidez en los modos con tiempo por pregunta, y ×2 en Experto.
 - **Cuentas (Supabase)**: solo usuario y contraseña, sin correo. Con sesión, cada partida suma sus puntos a tu total y actualiza tu récord del modo.
+- **Borrar cuenta** desde el perfil: se borran para siempre el usuario, la foto, los puntos, los récords y los amigos.
 - **Perfil**: usuario para entrar (no se cambia) y **nombre visible** que se puede cambiar cuando quieras; en el ranking salen los dos.
 - **Foto de perfil**: se sube cualquier imagen; el juego la recorta en cuadrado y la reduce a 256 px antes de subirla.
 - **Ranking**: puntos totales o récord de cada modo, **global** (los 50 mejores, visible sin cuenta) o **entre amigos**.
 - **Amigos**: se añaden por nombre de usuario y la amistad es mutua. El enlace `…/?amigo=usuario` añade a ese amigo al abrirlo.
 - **Sonidos propios** sintetizados en el navegador (sin archivos de audio): botones, acierto, fallo, victoria, derrota, giro de los rodillos y aviso de tiempo.
+- **Reproductor de música** (Ajustes o el botón ♪ de la cabecera): anterior / pausa / siguiente, volumen de música y de sonidos, y una playlist que se reordena arrastrando. Se pueden **subir canciones** (se guardan en el navegador), pegar un **vídeo o una lista de YouTube** (solo se oye el audio; el reproductor oficial va oculto) o un enlace de **Spotify** (su widget oficial; sin sesión en Spotify solo suenan 30 s por canción).
+- **Pantalla de bienvenida** con los rodillos parándose en 7-7-7 (se salta con cualquier tecla o clic).
 - **Preguntas online que no se repiten** ([Open Trivia DB](https://opentdb.com) y [The Trivia API](https://the-trivia-api.com)), traducidas automáticamente al español o al inglés.
 - **Sin conexión**: si las APIs fallan se usan las más de 700 preguntas guardadas en `public/preguntas/`.
 
@@ -31,7 +34,7 @@ Juego de trivia con tragaperras: **elige un modo, tira de la palanca**, los rodi
 
 (Astronomía, España, Cuerpo humano e Inventos solo tienen preguntas locales.)
 
-**Cómo se juega**: elige modo y tira de la palanca arrastrándola hacia abajo, pulsándola o con la barra espaciadora.
+**Cómo se juega**: elige el modo en la pantalla de la máquina (flechas ◀ ▶, las teclas de debajo o ← → del teclado) y tira de la palanca arrastrándola hacia abajo, pulsándola o con la barra espaciadora.
 
 ## Configurar Supabase
 

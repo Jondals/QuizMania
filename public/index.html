@@ -1,9 +1,10 @@
 <!doctype html>
 <!--
     index.html
-    Única página de QuizMania. Contiene todas las pantallas del juego
-    (inicio con los modos y la tragaperras, carga, pregunta, resultados y
-    ranking con amigos) y los diálogos de cuenta, perfil y ajustes.
+    Única página de QuizMania. Contiene el fondo animado, la pantalla de
+    bienvenida (splash), la cabecera con el menú de la cuenta, todas las
+    pantallas del juego (inicio con la tragaperras, carga, pregunta,
+    resultados y ranking) y los diálogos de perfil, ajustes y confirmación.
     Solo se ve una pantalla a la vez; main.ts decide cuál.
     Los textos llevan data-texto para traducirse al inglés.
 -->
@@ -18,25 +19,68 @@
     <link rel="icon" href="img/favicon.png" type="image/png" sizes="48x48">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="estilos-resto.css">
 </head>
 <body>
+    <!-- Fondo animado: luces de neón que se mueven despacio, suelo de rejilla
+         y símbolos de tragaperras flotando. Solo decorativo. -->
+    <div class="fondo" aria-hidden="true">
+        <div class="fondo-luz fondo-luz--rosa"></div>
+        <div class="fondo-luz fondo-luz--turquesa"></div>
+        <div class="fondo-luz fondo-luz--violeta"></div>
+        <div class="fondo-suelo"></div>
+        <div class="fondo-simbolos">
+            <span style="--x: 6%; --d: 0s; --t: 34s; --s: 1.6rem">7</span>
+            <span style="--x: 17%; --d: -12s; --t: 42s; --s: 1.2rem">★</span>
+            <span style="--x: 29%; --d: -25s; --t: 38s; --s: 1.9rem">?</span>
+            <span style="--x: 41%; --d: -6s; --t: 46s; --s: 1.1rem">◆</span>
+            <span style="--x: 53%; --d: -31s; --t: 36s; --s: 1.5rem">7</span>
+            <span style="--x: 64%; --d: -18s; --t: 44s; --s: 1.3rem">★</span>
+            <span style="--x: 75%; --d: -3s; --t: 40s; --s: 2rem">?</span>
+            <span style="--x: 86%; --d: -22s; --t: 48s; --s: 1.2rem">◆</span>
+            <span style="--x: 94%; --d: -9s; --t: 37s; --s: 1.7rem">7</span>
+            <span style="--x: 35%; --d: -38s; --t: 50s; --s: 1rem">★</span>
+            <span style="--x: 70%; --d: -28s; --t: 52s; --s: 1rem">✦</span>
+            <span style="--x: 12%; --d: -44s; --t: 54s; --s: 1.1rem">✦</span>
+        </div>
+    </div>
+
+    <!-- Pantalla de bienvenida: tres rodillos que se paran en 7-7-7 y el logo.
+         Es solo CSS (se va sola aunque falle el JavaScript); main.ts la quita
+         del todo al terminar o si se pulsa cualquier tecla o se hace clic. -->
+    <div id="splash" class="splash" aria-hidden="true">
+        <div class="splash-contenido">
+            <div class="splash-rodillos">
+                <div class="splash-ventana"><div class="splash-tira"><span>🎲</span><span>🎬</span><span>🏛️</span><span>🎮</span><span>🔬</span><span class="siete">7</span></div></div>
+                <div class="splash-ventana"><div class="splash-tira"><span>⚽</span><span>🎵</span><span>🌍</span><span>📚</span><span>🍕</span><span class="siete">7</span></div></div>
+                <div class="splash-ventana"><div class="splash-tira"><span>💡</span><span>🎨</span><span>🧠</span><span>🪐</span><span>⚡</span><span class="siete">7</span></div></div>
+            </div>
+            <div class="splash-logo">
+                <img src="img/favicon.svg" width="44" height="44" alt="">
+                <span>Quiz<b>Mania</b></span>
+            </div>
+        </div>
+    </div>
+
     <header class="barra-superior">
         <div class="barra-contenido">
             <button type="button" id="boton-inicio" class="marca" aria-label="QuizMania, ir al inicio" data-texto-aria="inicio">
-                <img class="marca-icono" src="img/favicon.svg" width="40" height="40" alt="" draggable="false">
-                <span class="marca-nombre">QuizMania</span>
+                <img class="marca-icono" src="img/favicon.svg" width="44" height="44" alt="" draggable="false">
+                <span class="marca-nombre">Quiz<b>Mania</b></span>
             </button>
-            <nav class="barra-acciones">
-                <button type="button" id="boton-ranking" class="boton-icono" aria-label="Ranking y amigos" data-texto-aria="rankingYAmigos" hidden>
+
+            <nav class="navegacion" aria-label="Secciones" data-texto-aria="secciones">
+                <button type="button" id="nav-jugar" class="nav-enlace" aria-current="page" aria-label="Jugar" data-texto-aria="jugar">
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 12h4M8 10v4M15 13h.01M18 11h.01M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.1 2.4L9 15.5h6l1.9 1.9A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/></svg>
+                    <span data-texto="jugar">Jugar</span>
+                </button>
+                <button type="button" id="boton-ranking" class="nav-enlace" aria-label="Ranking" data-texto-aria="ranking" hidden>
                     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>
+                    <span data-texto="ranking">Ranking</span>
                 </button>
-                <button type="button" id="boton-cuenta" class="boton-cuenta" aria-haspopup="dialog" hidden>
-                    <span id="avatar-cabecera" class="avatar" aria-hidden="true"></span>
-                    <span class="cuenta-textos">
-                        <span id="usuario-cabecera" class="cuenta-usuario">Entrar</span>
-                        <span id="puntos-cabecera" class="cuenta-puntos" hidden></span>
-                    </span>
-                </button>
+            </nav>
+
+            <div class="barra-acciones">
                 <div class="selector-idioma" role="group" aria-label="Idioma" data-texto-aria="idioma">
                     <button type="button" class="boton-idioma" data-idioma="es" aria-pressed="true">ES</button>
                     <button type="button" class="boton-idioma" data-idioma="en" aria-pressed="false">EN</button>
@@ -44,63 +88,166 @@
                 <button type="button" id="boton-ajustes" class="boton-icono" aria-haspopup="dialog" aria-label="Ajustes" data-texto-aria="ajustes">
                     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
                 </button>
-            </nav>
+
+                <!-- Cuenta: botón y menú desplegable (entrar / crear cuenta, o tu perfil) -->
+                <div class="cuenta" hidden id="zona-cuenta">
+                    <button type="button" id="boton-cuenta" class="boton-cuenta" aria-expanded="false" aria-controls="menu-cuenta">
+                        <span id="avatar-cabecera" class="avatar" aria-hidden="true"></span>
+                        <span class="cuenta-textos">
+                            <span id="usuario-cabecera" class="cuenta-usuario">Entrar</span>
+                            <span id="puntos-cabecera" class="cuenta-puntos" hidden></span>
+                        </span>
+                        <svg class="cuenta-flecha" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </button>
+
+                    <div id="menu-cuenta" class="menu-cuenta" role="region" aria-label="Cuenta" data-texto-aria="cuenta">
+                        <!-- Invitado: entrar o crear cuenta -->
+                        <div id="menu-invitado" class="menu-invitado">
+                            <h2 class="menu-titulo" data-texto="tuCuenta">Tu cuenta</h2>
+                            <p class="menu-subtitulo" data-texto="subtituloCuenta">Guarda tus puntos y pícate con tus amigos.</p>
+                            <div class="pestanas-cuenta" role="tablist">
+                                <button type="button" class="pestana-cuenta" role="tab" data-modo="entrar" aria-selected="true" data-texto="entrar">Entrar</button>
+                                <button type="button" class="pestana-cuenta" role="tab" data-modo="registro" aria-selected="false" data-texto="crearCuenta">Crear cuenta</button>
+                            </div>
+                            <form id="formulario-entrar" class="formulario-cuenta" novalidate>
+                                <div class="campo">
+                                    <label for="campo-usuario" data-texto="usuario">Usuario</label>
+                                    <input type="text" id="campo-usuario" name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required>
+                                    <p id="ayuda-usuario" class="ayuda" data-texto="ayudaUsuario" hidden>3-20 caracteres: letras, números o _.</p>
+                                </div>
+                                <div class="campo">
+                                    <label for="campo-contrasena" data-texto="contrasena">Contraseña</label>
+                                    <div class="campo-clave">
+                                        <input type="password" id="campo-contrasena" name="contrasena" autocomplete="current-password" minlength="6" required>
+                                        <button type="button" class="ver-clave" aria-label="Mostrar contraseña" data-texto-aria="mostrarContrasena" data-sin-clic></button>
+                                    </div>
+                                </div>
+                                <div id="grupo-repetir" class="campo" hidden>
+                                    <label for="campo-repetir" data-texto="repetirContrasena">Repite la contraseña</label>
+                                    <div class="campo-clave">
+                                        <input type="password" id="campo-repetir" autocomplete="new-password" minlength="6">
+                                        <button type="button" class="ver-clave" aria-label="Mostrar contraseña" data-texto-aria="mostrarContrasena" data-sin-clic></button>
+                                    </div>
+                                </div>
+                                <p id="mensaje-entrar" class="mensaje mensaje--error" role="alert"></p>
+                                <button type="submit" id="boton-enviar-entrar" class="boton boton-claro boton-ancho" data-texto="entrar">Entrar</button>
+                            </form>
+                        </div>
+
+                        <!-- Con sesión: resumen del jugador -->
+                        <div id="menu-jugador" class="menu-jugador" hidden>
+                            <div class="menu-perfil">
+                                <span id="avatar-menu" class="avatar avatar--mediano" aria-hidden="true"></span>
+                                <div class="menu-perfil-textos">
+                                    <strong id="nombre-menu" class="menu-nombre"></strong>
+                                    <span id="puntos-menu" class="menu-puntos"></span>
+                                </div>
+                            </div>
+                            <div class="codigo-amigo">
+                                <span class="etiqueta" data-texto="codigoAmigo">Código de amigo</span>
+                                <div class="codigo-fila">
+                                    <strong id="codigo-menu" class="codigo">······</strong>
+                                    <button type="button" class="boton-icono boton-icono--pequeno boton-copiar" data-copiar="codigo-menu" aria-label="Copiar código" data-texto-aria="copiarCodigo">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <dl class="menu-estadisticas">
+                                <div><dt data-texto="partidas">Partidas</dt><dd id="stat-partidas"></dd></div>
+                                <div><dt data-texto="precision">Precisión</dt><dd id="stat-precision"></dd></div>
+                            </dl>
+                            <div class="menu-acciones">
+                                <button type="button" id="boton-editar-perfil" class="menu-opcion">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                    <span data-texto="editarPerfil">Editar perfil</span>
+                                </button>
+                                <button type="button" id="boton-menu-ranking" class="menu-opcion">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg>
+                                    <span data-texto="rankingYAmigos">Ranking y amigos</span>
+                                </button>
+                                <button type="button" id="boton-salir" class="menu-opcion menu-opcion--salir">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                                    <span data-texto="cerrarSesion">Cerrar sesión</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
     <main>
-        <!-- Pantalla 1: portada con los modos y la tragaperras -->
+        <!-- Pantalla 1: portada con la tragaperras -->
         <section id="pantalla-inicio" class="pantalla pantalla-inicio">
             <div class="portada">
                 <h1 class="titular" tabindex="-1">
-                    <span class="titular-linea"><span data-texto="titular1a">Gira los</span> <span class="rosa" data-texto="titular1b">rodillos</span>.</span>
-                    <span class="titular-linea"><span data-texto="titular2a">Descubre tu</span> <span class="turquesa" data-texto="titular2b">reto</span>.</span>
-                    <span class="titular-linea"><span data-texto="titular3a">Aprende y</span> <span class="amarillo" data-texto="titular3b">diviértete</span>.</span>
+                    <span class="titular-linea" data-texto="titular1">Tira de la palanca.</span>
+                    <span class="titular-linea titular-degradado" data-texto="titular2">Demuestra lo que sabes.</span>
                 </h1>
-                <p class="portada-texto" data-texto="portadaTexto">Elige un modo, tira de la palanca y responde.</p>
-                <dl class="datos">
-                    <div><dt data-texto="datoTemas">Temas</dt><dd>30</dd></div>
-                    <div><dt data-texto="datoModos">Modos</dt><dd class="turquesa">10</dd></div>
-                    <div><dt data-texto="idioma">Idioma</dt><dd class="amarillo">ES / EN</dd></div>
-                </dl>
+                <p class="portada-texto" data-texto="portadaTexto">Una tragaperras elige el tema; tú pones las respuestas.</p>
+                <p class="portada-datos">
+                    <span><strong>30</strong> <span data-texto="datoTemas">temas</span></span>
+                    <span><strong>10</strong> <span data-texto="datoModos">modos</span></span>
+                    <span><strong>ES · EN</strong></span>
+                </p>
+                <ol class="pasos">
+                    <li><span class="paso-numero">1</span> <span data-texto="paso1">Elige el modo en la máquina</span></li>
+                    <li><span class="paso-numero">2</span> <span data-texto="paso2">Tira de la palanca (o pulsa Espacio)</span></li>
+                    <li><span class="paso-numero">3</span> <span data-texto="paso3">Responde y suma puntos</span></li>
+                </ol>
             </div>
 
-            <div class="tarjeta maquina">
-                <div class="tarjeta-cabecera">
-                    <span class="punto" aria-hidden="true"></span>
-                    <h2 id="titulo-tragaperras" class="tarjeta-titulo" data-texto="tiraDeLaPalanca">¡Tira de la palanca!</h2>
-                </div>
-                <div id="selector-modo" class="selector-modo" role="radiogroup" aria-label="Modo de juego" data-texto-aria="modoDeJuego"></div>
-                <p id="descripcion-modo" class="descripcion-modo"></p>
-                <div class="maquina-cuerpo">
-                    <!-- Mueble de la tragaperras: cartel, luces, rodillos y línea de premio -->
-                    <div class="maquina-caja">
-                        <div class="maquina-cartel" aria-hidden="true">
-                            <span class="cartel-luz"></span>
-                            <span class="cartel-texto">QUIZ<span class="cartel-siete">7</span>MANIA</span>
-                            <span class="cartel-luz"></span>
-                        </div>
-                        <div class="luces" aria-hidden="true"></div>
+            <!-- Tragaperras: mueble con cartel, rodillos, pantalla de modo, bandeja y palanca -->
+            <div id="maquina" class="maquina">
+                <div class="maquina-mueble">
+                    <div class="maquina-copete">
+                        <div class="copete-bombillas" aria-hidden="true"></div>
+                        <span class="copete-texto" aria-hidden="true">QUIZ<b>7</b>MANIA</span>
+                        <h2 id="titulo-tragaperras" class="copete-estado" data-texto="tiraDeLaPalanca">¡Tira de la palanca!</h2>
+                    </div>
+                    <div class="maquina-frontal">
                         <div class="rodillos" aria-hidden="true">
                             <div class="ventana"><div class="rodillo-tira"></div></div>
                             <div class="ventana"><div class="rodillo-tira"></div></div>
                             <div class="ventana"><div class="rodillo-tira"></div></div>
                             <span class="linea-premio"></span>
                         </div>
-                        <div class="luces luces--abajo" aria-hidden="true"></div>
+
+                        <div class="maquina-display">
+                            <button type="button" id="modo-anterior" class="display-flecha" aria-label="Modo anterior" data-texto-aria="modoAnterior">
+                                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M15 5v14L6 12z"/></svg>
+                            </button>
+                            <div class="display-texto" aria-live="polite">
+                                <span id="display-modo" class="display-modo"></span>
+                                <span id="descripcion-modo" class="display-descripcion"></span>
+                            </div>
+                            <button type="button" id="modo-siguiente" class="display-flecha" aria-label="Modo siguiente" data-texto-aria="modoSiguiente">
+                                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9 5v14l9-7z"/></svg>
+                            </button>
+                        </div>
+                        <div id="selector-modo" class="teclas-modo" role="radiogroup" aria-label="Modo de juego" data-texto-aria="modoDeJuego"></div>
+
+                        <div class="maquina-marcadores">
+                            <div class="marcador-led">
+                                <span data-texto="temaElegido">Tema</span>
+                                <strong id="resultado-tragaperras" aria-live="polite">—</strong>
+                            </div>
+                            <div class="marcador-led marcador-led--record">
+                                <span data-texto="tuRecord">Tu récord</span>
+                                <strong id="record-inicio">0</strong>
+                            </div>
+                        </div>
                     </div>
-                    <!-- Palanca: se arrastra hacia abajo, se pulsa o se activa con Intro/Espacio -->
-                    <button type="button" id="palanca" class="palanca" aria-label="Tirar de la palanca" data-texto-aria="palanca" data-sin-clic>
-                        <span class="palanca-soporte" aria-hidden="true"></span>
-                        <span class="palanca-brazo" aria-hidden="true"></span>
-                        <span class="palanca-bola" aria-hidden="true"></span>
-                    </button>
+                    <!-- Bandeja de premios con monedas -->
+                    <div class="maquina-bandeja" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
                 </div>
-                <p class="pista-palanca" data-texto="pistaPalanca">Arrastra la palanca hacia abajo, púlsala o dale a Espacio</p>
-                <p class="pie-maquina">
-                    <span id="resultado-tragaperras" class="resultado-tragaperras" aria-live="polite"></span>
-                    <span id="record-inicio" class="record-inicio"></span>
-                </p>
+                <!-- Palanca: se arrastra hacia abajo, se pulsa o se activa con Intro/Espacio -->
+                <button type="button" id="palanca" class="palanca" aria-label="Tirar de la palanca" data-texto-aria="palanca" data-sin-clic>
+                    <span class="palanca-soporte" aria-hidden="true"></span>
+                    <span class="palanca-brazo" aria-hidden="true"></span>
+                    <span class="palanca-bola" aria-hidden="true"></span>
+                </button>
             </div>
         </section>
 
@@ -136,8 +283,10 @@
                     <span id="marcador-vidas" class="marcador-vidas" role="img" hidden></span>
                     <span id="marcador-tiempo" class="marcador-tiempo" hidden></span>
                 </div>
-                <div id="barra-progreso" class="barra barra-progreso" aria-hidden="true"><div id="barra-progreso-relleno" class="barra-relleno"></div></div>
-                <div id="barra-tiempo" class="barra barra-tiempo" aria-hidden="true" hidden><div id="barra-tiempo-relleno" class="barra-relleno"></div></div>
+                <div class="barras">
+                    <div id="barra-progreso" class="barra barra-progreso" aria-hidden="true"><div id="barra-progreso-relleno" class="barra-relleno"></div></div>
+                    <div id="barra-tiempo" class="barra barra-tiempo" aria-hidden="true" hidden><div id="barra-tiempo-relleno" class="barra-relleno"></div></div>
+                </div>
                 <h2 id="enunciado" class="enunciado" tabindex="-1"><span id="numero-enunciado" class="numero-enunciado"></span> <span id="texto-enunciado"></span></h2>
                 <div id="lista-respuestas" class="lista-respuestas" role="group" aria-label="Respuestas" data-texto-aria="respuestas"></div>
                 <p id="aviso-local" class="aviso-local" hidden data-texto="preguntasLocales">Sin conexión: usando preguntas guardadas.</p>
@@ -155,69 +304,81 @@
 
         <!-- Pantalla 4: resultados -->
         <section id="pantalla-resultados" class="pantalla pantalla-resultados" hidden>
-            <p class="insignia insignia-exito"><span class="punto" aria-hidden="true"></span> <span id="modo-resultados"></span> · <span id="tema-resultados"></span></p>
-            <h2 id="mensaje-resultado" class="mensaje-resultado" tabindex="-1"></h2>
-            <p class="puntos-finales"><strong id="puntos-finales">0</strong> <span data-texto="puntos">puntos</span></p>
-            <p id="aviso-record" class="aviso-record" hidden data-texto="nuevoRecord">🏆 Has batido tu récord personal</p>
-            <p id="aviso-guardado" class="aviso-guardado" role="status" hidden></p>
-            <div id="aviso-invitado" class="aviso-invitado" hidden>
-                <p data-texto="avisoInvitado">Juegas como invitado: crea una cuenta para sumar estos puntos.</p>
-                <button type="button" class="boton boton-turquesa boton-pequeno" data-texto="crearCuenta">Crear cuenta</button>
-            </div>
-            <dl class="resumen">
-                <div class="resumen-aciertos"><dt data-texto="aciertos">Aciertos</dt><dd id="puntuacion"></dd></div>
-                <div class="resumen-precision"><dt data-texto="precision">Precisión</dt><dd id="porcentaje"></dd></div>
-                <div class="resumen-racha"><dt data-texto="mejorRacha">Mejor racha</dt><dd id="mejor-racha"></dd></div>
-                <div class="resumen-record"><dt data-texto="record">Récord</dt><dd id="record-modo"></dd></div>
-            </dl>
-
-            <div id="bloque-amigos" class="tarjeta bloque-amigos" hidden>
-                <div class="bloque-cabecera">
-                    <h3 data-texto="entreTusAmigos">Entre tus amigos</h3>
-                    <span id="posicion-amigos" class="posicion-amigos"></span>
+            <div class="tarjeta panel-resultados">
+                <p class="resultado-contexto"><span id="modo-resultados"></span> <span aria-hidden="true">·</span> <span id="tema-resultados"></span></p>
+                <h2 id="mensaje-resultado" class="mensaje-resultado" tabindex="-1"></h2>
+                <p class="puntos-finales"><strong id="puntos-finales">0</strong> <span data-texto="puntos">puntos</span></p>
+                <div class="avisos-resultado">
+                    <p id="aviso-record" class="aviso aviso--record" hidden data-texto="nuevoRecord">🏆 Has batido tu récord personal</p>
+                    <p id="aviso-guardado" class="aviso aviso--guardado" role="status" hidden></p>
                 </div>
-                <ol id="lista-amigos-resultado" class="lista-ranking"></ol>
-                <div id="invitar-amigos" class="invitar-amigos" hidden>
-                    <p data-texto="invitarTexto">Añade amigos para picarte con ellos</p>
-                    <button type="button" id="boton-invitar-resultados" class="boton boton-pequeno" data-texto="invitar">Invitar amigos</button>
+                <dl class="resumen">
+                    <div><dt data-texto="aciertos">Aciertos</dt><dd id="puntuacion" class="turquesa"></dd></div>
+                    <div><dt data-texto="precision">Precisión</dt><dd id="porcentaje" class="amarillo"></dd></div>
+                    <div><dt data-texto="mejorRacha">Mejor racha</dt><dd id="mejor-racha" class="rosa"></dd></div>
+                    <div><dt data-texto="record">Récord</dt><dd id="record-modo" class="cian"></dd></div>
+                </dl>
+                <div id="aviso-invitado" class="aviso-invitado" hidden>
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/></svg>
+                    <p data-texto="avisoInvitado">Juegas como invitado: crea una cuenta para sumar estos puntos.</p>
+                    <button type="button" class="boton boton-turquesa boton-pequeno" data-abrir-entrar="registro" data-texto="crearCuenta">Crear cuenta</button>
                 </div>
-            </div>
 
-            <div class="botonera">
-                <button type="button" class="boton boton-rosa boton-jugar-de-nuevo" data-texto="jugarDeNuevo">Jugar de nuevo</button>
-                <button type="button" id="boton-revisar" class="boton" data-texto="revisar">Revisar respuestas</button>
-                <button type="button" class="boton boton-ir-ranking" data-texto="verRanking">Ver ranking</button>
+                <div id="bloque-amigos" class="bloque-amigos" hidden>
+                    <div class="bloque-cabecera">
+                        <h3 data-texto="entreTusAmigos">Entre tus amigos</h3>
+                        <span id="posicion-amigos" class="posicion-amigos"></span>
+                    </div>
+                    <ol id="lista-amigos-resultado" class="lista-ranking"></ol>
+                    <div id="invitar-amigos" class="invitar-amigos" hidden>
+                        <p data-texto="invitarTexto">Añade amigos para picarte con ellos</p>
+                        <button type="button" id="boton-invitar-resultados" class="boton boton-pequeno" data-texto="invitar">Invitar amigos</button>
+                    </div>
+                </div>
+
+                <div class="botonera">
+                    <button type="button" class="boton boton-rosa boton-jugar-de-nuevo" data-texto="jugarDeNuevo">Jugar de nuevo</button>
+                    <button type="button" id="boton-revisar" class="boton" data-texto="revisar">Revisar respuestas</button>
+                    <button type="button" class="boton boton-ir-ranking" data-texto="verRanking">Ver ranking</button>
+                </div>
             </div>
         </section>
 
         <!-- Pantalla 5: ranking y amigos -->
         <section id="pantalla-ranking" class="pantalla pantalla-ranking" hidden>
-            <div class="cabecera-seccion">
-                <button type="button" id="boton-volver-ranking" class="boton boton-fantasma boton-volver"><span aria-hidden="true">←</span> <span data-texto="volver">Volver</span></button>
-                <h2 class="titulo-seccion" tabindex="-1" data-texto="rankingYAmigos">Ranking y amigos</h2>
-            </div>
-
-            <div class="rejilla-social">
-                <div class="tarjeta panel panel-ranking">
-                    <div class="tarjeta-cabecera">
-                        <span class="punto" aria-hidden="true"></span>
-                        <h3 class="tarjeta-titulo" data-texto="clasificacion">Clasificación</h3>
-                        <span id="mi-posicion" class="mi-posicion"></span>
-                    </div>
-                    <div class="selector-ambito" role="group">
+            <div class="ranking-cabecera">
+                <h2 class="titulo-seccion" tabindex="-1" data-texto="ranking">Ranking</h2>
+                <div class="ranking-controles">
+                    <div class="selector-ambito" role="group" aria-label="Ámbito" data-texto-aria="ambito">
                         <button type="button" class="boton-ambito" data-ambito="global" aria-pressed="true" data-texto="global">Global</button>
                         <button type="button" class="boton-ambito" data-ambito="amigos" aria-pressed="false" data-texto="amigos">Amigos</button>
                     </div>
-                    <div id="pestanas-modo" class="pestanas"></div>
-                    <ol id="lista-ranking" class="lista-ranking"></ol>
-                    <p id="estado-ranking" class="estado-lista" role="status"></p>
-                </div>
-
-                <div id="panel-amigos" class="tarjeta panel">
-                    <div class="tarjeta-cabecera">
-                        <span class="punto punto--amarillo" aria-hidden="true"></span>
-                        <h3 class="tarjeta-titulo" data-texto="amigos">Amigos</h3>
+                    <div class="selector-flechas">
+                        <button type="button" id="ranking-anterior" class="flecha-selector" aria-label="Clasificación anterior" data-texto-aria="clasificacionAnterior">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6"/></svg>
+                        </button>
+                        <label class="selector-lista">
+                            <span class="solo-lectores" data-texto="clasificacion">Clasificación</span>
+                            <select id="selector-ranking-modo"></select>
+                        </label>
+                        <button type="button" id="ranking-siguiente" class="flecha-selector" aria-label="Clasificación siguiente" data-texto-aria="clasificacionSiguiente">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></svg>
+                        </button>
                     </div>
+                </div>
+            </div>
+
+            <div class="rejilla-social">
+                <section class="panel-ranking" aria-labelledby="titulo-clasificacion">
+                    <h3 id="titulo-clasificacion" class="solo-lectores" data-texto="clasificacion">Clasificación</h3>
+                    <div id="podio" class="podio"></div>
+                    <ol id="lista-ranking" class="lista-ranking lista-ranking--grande"></ol>
+                    <p id="estado-ranking" class="estado-lista" role="status"></p>
+                    <p id="mi-posicion" class="mi-posicion"></p>
+                </section>
+
+                <aside id="panel-amigos" class="tarjeta panel-amigos" aria-labelledby="titulo-amigos">
+                    <h3 id="titulo-amigos" class="titulo-panel" data-texto="amigos">Amigos</h3>
                     <div id="amigos-sin-sesion" class="amigos-sin-sesion">
                         <p data-texto="entraParaAmigosLargo">Crea una cuenta o entra para añadir amigos.</p>
                         <div class="botonera">
@@ -226,119 +387,146 @@
                         </div>
                     </div>
                     <div id="amigos-con-sesion" class="amigos-con-sesion" hidden>
-                        <div class="mi-usuario">
-                            <span class="etiqueta" data-texto="tuUsuario">Tu usuario</span>
-                            <strong id="mi-usuario-social" class="usuario-destacado"></strong>
-                            <button type="button" id="boton-compartir" class="boton boton-pequeno boton-turquesa" data-texto="compartir">Compartir invitación</button>
+                        <div class="codigo-amigo">
+                            <span class="etiqueta" data-texto="tuCodigoAmigo">Tu código de amigo</span>
+                            <div class="codigo-fila">
+                                <strong id="mi-codigo-social" class="codigo">······</strong>
+                                <button type="button" class="boton-icono boton-icono--pequeno boton-copiar" data-copiar="mi-codigo-social" aria-label="Copiar código" data-texto-aria="copiarCodigo">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg>
+                                </button>
+                                <button type="button" id="boton-compartir" class="boton boton-pequeno" data-texto="compartir">Compartir</button>
+                            </div>
                             <p id="mensaje-invitacion" class="mensaje" aria-live="polite"></p>
                         </div>
                         <form id="formulario-amigo" class="formulario-amigo" novalidate>
-                            <label for="campo-amigo" class="etiqueta" data-texto="usuarioAmigo">Usuario de tu amigo</label>
+                            <label for="campo-amigo" class="etiqueta" data-texto="anadirAmigo">Añadir amigo</label>
                             <div class="fila-formulario">
-                                <input type="text" id="campo-amigo" maxlength="21" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="@usuario">
+                                <input type="text" id="campo-amigo" maxlength="24" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Código o usuario" data-texto-placeholder="codigoOUsuario">
                                 <button type="submit" class="boton boton-rosa" data-texto="anadir">Añadir</button>
                             </div>
                             <p id="mensaje-amigo" class="mensaje" aria-live="polite"></p>
                         </form>
                         <ul id="lista-amigos" class="lista-amigos" data-vacia="true"></ul>
+                        <p class="lista-vacia" data-texto="sinAmigosTodavia">Aún no tienes amigos.</p>
                     </div>
-                </div>
+                </aside>
             </div>
         </section>
     </main>
 
-    <!-- Entrar / crear cuenta: solo usuario y contraseña -->
-    <dialog id="dialogo-entrar" class="dialogo" aria-labelledby="titulo-entrar">
-        <div class="dialogo-contenido">
-            <div class="dialogo-cabecera">
-                <h2 id="titulo-entrar" class="solo-lectores" data-texto="entrar">Entrar</h2>
-                <div class="pestanas-cuenta" role="tablist">
-                    <button type="button" class="pestana-cuenta" role="tab" data-modo="entrar" aria-selected="true" data-texto="entrar">Entrar</button>
-                    <button type="button" class="pestana-cuenta" role="tab" data-modo="registro" aria-selected="false" data-texto="crearCuenta">Crear cuenta</button>
-                </div>
-                <form method="dialog"><button class="boton-icono" aria-label="Cerrar" data-texto-aria="cerrar">✕</button></form>
+    <!-- Editar perfil: nombre, foto y contraseña -->
+    <dialog id="dialogo-perfil" class="dialogo dialogo-perfil" aria-labelledby="titulo-perfil">
+        <form id="formulario-perfil" class="dialogo-contenido" novalidate>
+            <div>
+                <h2 id="titulo-perfil" class="dialogo-titulo" data-texto="editarPerfil">Editar perfil</h2>
+                <p class="dialogo-subtitulo" data-texto="subtituloEditarPerfil">Cambia tu nombre, tu foto o tu contraseña.</p>
             </div>
-            <form id="formulario-entrar" class="formulario-cuenta" novalidate>
-                <div class="campo">
-                    <label for="campo-usuario" data-texto="usuario">Usuario</label>
-                    <input type="text" id="campo-usuario" name="usuario" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required>
-                    <p id="ayuda-usuario" class="ayuda" data-texto="ayudaUsuario" hidden>3-20 caracteres: letras minúsculas, números o _.</p>
-                </div>
-                <div class="campo">
-                    <label for="campo-contrasena" data-texto="contrasena">Contraseña</label>
-                    <input type="password" id="campo-contrasena" name="contrasena" autocomplete="current-password" minlength="6" required>
-                </div>
-                <div id="grupo-repetir" class="campo" hidden>
-                    <label for="campo-repetir" data-texto="repetirContrasena">Repite la contraseña</label>
-                    <input type="password" id="campo-repetir" autocomplete="new-password" minlength="6">
-                </div>
-                <p id="mensaje-entrar" class="mensaje mensaje--error" role="alert"></p>
-                <button type="submit" id="boton-enviar-entrar" class="boton boton-rosa boton-ancho" data-texto="entrar">Entrar</button>
-            </form>
-        </div>
-    </dialog>
-
-    <!-- Perfil: foto, estadísticas, contraseña y cerrar sesión -->
-    <dialog id="dialogo-perfil" class="dialogo" aria-labelledby="titulo-perfil">
-        <div class="dialogo-contenido">
-            <div class="dialogo-cabecera">
-                <h2 id="titulo-perfil" data-texto="tuPerfil">Tu perfil</h2>
-                <form method="dialog"><button class="boton-icono" aria-label="Cerrar" data-texto-aria="cerrar">✕</button></form>
+            <div class="campo">
+                <label for="campo-nombre" data-texto="nombre">Nombre</label>
+                <input type="text" id="campo-nombre" autocomplete="nickname" spellcheck="false">
             </div>
-            <div class="perfil-vista">
-                <span id="avatar-perfil" class="avatar avatar--grande" aria-hidden="true"></span>
-                <div class="perfil-datos">
-                    <strong id="nombre-perfil" class="nombre-destacado"></strong>
-                    <span id="usuario-perfil" class="usuario-arroba"></span>
+            <div class="caja-foto">
+                <span id="avatar-perfil" class="avatar avatar--mediano" aria-hidden="true"></span>
+                <div class="caja-foto-textos">
+                    <span class="caja-foto-titulo" data-texto="fotoOpcional">Foto de perfil (opcional)</span>
                     <div class="botonera botonera--izquierda">
-                        <label class="boton boton-pequeno boton-turquesa boton-archivo">
+                        <label class="boton boton-pequeno boton-archivo">
                             <input type="file" id="campo-foto" accept="image/*" class="solo-lectores">
+                            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15 9h.01"/></svg>
                             <span data-texto="cambiarFoto">Cambiar foto</span>
                         </label>
-                        <button type="button" id="boton-quitar-foto" class="boton boton-pequeno" data-texto="quitarFoto">Quitar foto</button>
+                        <button type="button" id="boton-quitar-foto" class="boton boton-pequeno boton-fantasma" data-texto="quitarFoto">Quitar</button>
                     </div>
                     <p id="mensaje-foto" class="mensaje" aria-live="polite"></p>
                 </div>
             </div>
-            <dl class="estadisticas">
-                <div><dt data-texto="puntosTotales">Puntos totales</dt><dd id="stat-puntos" class="amarillo"></dd></div>
-                <div><dt data-texto="partidas">Partidas</dt><dd id="stat-partidas" class="turquesa"></dd></div>
-                <div><dt data-texto="precision">Precisión</dt><dd id="stat-precision" class="rosa"></dd></div>
-            </dl>
-            <form id="formulario-nombre" class="campo" novalidate>
-                <label for="campo-nombre" data-texto="nombreVisible">Nombre visible</label>
-                <div class="fila-formulario">
-                    <input type="text" id="campo-nombre" autocomplete="nickname" spellcheck="false">
-                    <button type="submit" class="boton boton-pequeno boton-turquesa" data-texto="guardar">Guardar</button>
+            <fieldset class="grupo-contrasena">
+                <legend data-texto="cambiarContrasena">Cambiar contraseña</legend>
+                <input type="text" autocomplete="username" id="usuario-oculto" class="solo-lectores" tabindex="-1" aria-hidden="true">
+                <div class="campo">
+                    <label for="campo-contrasena-actual" data-texto="contrasenaActual">Contraseña actual</label>
+                    <div class="campo-clave">
+                        <input type="password" id="campo-contrasena-actual" autocomplete="current-password">
+                        <button type="button" class="ver-clave" aria-label="Mostrar contraseña" data-texto-aria="mostrarContrasena" data-sin-clic></button>
+                    </div>
                 </div>
-                <p id="mensaje-nombre" class="mensaje" aria-live="polite"></p>
-            </form>
-            <form id="formulario-contrasena" class="campo" novalidate>
-                <label for="campo-nueva-contrasena" data-texto="nuevaContrasena">Nueva contraseña</label>
-                <input type="text" autocomplete="username" hidden>
-                <div class="fila-formulario">
-                    <input type="password" id="campo-nueva-contrasena" autocomplete="new-password" minlength="6">
-                    <button type="submit" class="boton boton-pequeno" data-texto="cambiarContrasena">Cambiar contraseña</button>
+                <div class="campo">
+                    <label for="campo-nueva-contrasena" data-texto="nuevaContrasenaOpcional">Nueva contraseña (opcional)</label>
+                    <div class="campo-clave">
+                        <input type="password" id="campo-nueva-contrasena" autocomplete="new-password" minlength="6">
+                        <button type="button" class="ver-clave" aria-label="Mostrar contraseña" data-texto-aria="mostrarContrasena" data-sin-clic></button>
+                    </div>
                 </div>
-                <p id="mensaje-contrasena" class="mensaje" aria-live="polite"></p>
-            </form>
-            <button type="button" id="boton-salir" class="boton boton-fantasma boton-ancho" data-texto="cerrarSesion">Cerrar sesión</button>
-        </div>
+                <p class="ayuda" data-texto="avisoContrasena">No se puede recuperar, así que guárdala en un sitio seguro (lo ideal es un gestor de contraseñas).</p>
+            </fieldset>
+            <p id="mensaje-perfil" class="mensaje" aria-live="polite"></p>
+            <div class="dialogo-botones">
+                <button type="submit" id="boton-guardar-perfil" class="boton boton-claro boton-ancho" data-texto="guardarCambios">Guardar cambios</button>
+                <button type="button" id="boton-cancelar-perfil" class="boton boton-ancho" data-texto="cancelar">Cancelar</button>
+            </div>
+            <button type="button" id="boton-borrar-cuenta" class="enlace-peligro" data-texto="borrarCuenta">Borrar cuenta</button>
+        </form>
     </dialog>
 
-    <!-- Ajustes -->
-    <dialog id="dialogo-ajustes" class="dialogo" aria-labelledby="titulo-ajustes">
+    <!-- Ajustes: reproductor de música y volúmenes -->
+    <dialog id="dialogo-ajustes" class="dialogo dialogo-ajustes" aria-labelledby="titulo-ajustes">
         <div class="dialogo-contenido">
             <div class="dialogo-cabecera">
-                <h2 id="titulo-ajustes" data-texto="ajustes">Ajustes</h2>
+                <h2 id="titulo-ajustes" class="dialogo-titulo" data-texto="ajustes">Ajustes</h2>
                 <form method="dialog"><button class="boton-icono" aria-label="Cerrar" data-texto-aria="cerrar">✕</button></form>
             </div>
-            <div class="campo">
-                <label for="volumen-efectos" data-texto="volumenEfectos">Volumen de los efectos</label>
-                <div class="campo-slider">
+
+            <div class="reproductor">
+                <p id="musica-actual" class="musica-actual" aria-live="polite"></p>
+                <div class="reproductor-controles">
+                    <button type="button" id="musica-anterior" class="boton-redondo" aria-label="Canción anterior" data-texto-aria="cancionAnterior">
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 20 9 12l10-8v16zM5 19V5"/></svg>
+                    </button>
+                    <button type="button" id="musica-play" class="boton-redondo boton-redondo--grande" aria-label="Reproducir" data-texto-aria="reproducir">
+                        <svg class="icono-play" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>
+                        <svg class="icono-pausa" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                    </button>
+                    <button type="button" id="musica-siguiente" class="boton-redondo" aria-label="Canción siguiente" data-texto-aria="cancionSiguiente">
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m5 4 10 8-10 8V4zM19 5v14"/></svg>
+                    </button>
+                </div>
+                <!-- Reproductor de Spotify (su propio widget, solo audio): se ve cuando suena Spotify -->
+                <div id="musica-spotify" class="musica-spotify" hidden></div>
+
+                <div class="volumenes">
+                    <label class="volumen" for="volumen-musica">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+                        <span data-texto="musica">Música</span>
+                    </label>
+                    <input type="range" id="volumen-musica" min="0" max="100" step="1" value="50">
+                    <output id="valor-volumen-musica" for="volumen-musica">50%</output>
+
+                    <label class="volumen" for="volumen-efectos">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+                        <span data-texto="sonidos">Sonidos</span>
+                    </label>
                     <input type="range" id="volumen-efectos" min="0" max="100" step="1" value="70">
                     <output id="valor-volumen-efectos" for="volumen-efectos">70%</output>
                 </div>
+
+                <div class="playlist-cabecera">
+                    <span class="etiqueta" data-texto="playlist">Playlist</span>
+                    <span id="musica-contador" class="contador-playlist"></span>
+                </div>
+                <ol id="lista-musica" class="lista-musica"></ol>
+                <p id="musica-vacia" class="lista-vacia" data-texto="playlistVacia">Sube canciones o pega un enlace de YouTube o Spotify.</p>
+
+                <label class="subir-canciones">
+                    <input type="file" id="campo-canciones" accept="audio/*" multiple class="solo-lectores">
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    <span data-texto="subirCanciones">Subir canciones</span>
+                </label>
+                <form id="formulario-enlace-musica" class="fila-formulario" novalidate>
+                    <label for="campo-enlace-musica" class="solo-lectores" data-texto="enlaceMusica">Enlace de YouTube o Spotify</label>
+                    <input type="text" id="campo-enlace-musica" inputmode="url" autocomplete="off" spellcheck="false" placeholder="YouTube / Spotify…">
+                    <button type="submit" class="boton boton-pequeno boton-rosa" data-texto="anadir">Añadir</button>
+                </form>
+                <p id="mensaje-musica" class="mensaje" aria-live="polite"></p>
             </div>
         </div>
     </dialog>

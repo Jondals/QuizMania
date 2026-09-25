@@ -34,6 +34,8 @@ export interface Perfil {
     usuario: string;
     /** Nombre visible elegido por el jugador (null = se enseña el usuario). */
     nombre: string | null;
+    /** Código de amigo (null si la base de datos aún no los tiene). */
+    codigo: string | null;
     avatarVersion: number | null;
     puntosTotales: number;
     partidas: number;
@@ -64,11 +66,21 @@ let recordsOnline = new Map<string, { mejor: number; partidas: number }>();
 export const LONGITUD_MAXIMA_NOMBRE = 24;
 
 /**
- * Nombre que se enseña de un jugador: su nombre visible o, si no tiene, su usuario.
+ * Pone la primera letra en mayúscula ("jondals" → "Jondals").
+ * @param texto Texto a capitalizar.
+ */
+export function capitalizar(texto: string): string {
+    const [primera = "", ...resto] = [...texto];
+    return primera.toLocaleUpperCase() + resto.join("");
+}
+
+/**
+ * Nombre que se enseña de un jugador: su nombre visible o, si no tiene, su
+ * usuario; siempre empezando por mayúscula.
  * @param jugador Usuario y nombre.
  */
 export function nombreVisible(jugador: { usuario: string; nombre?: string | null }): string {
-    return jugador.nombre?.trim() || jugador.usuario;
+    return capitalizar(jugador.nombre?.trim() || jugador.usuario);
 }
 
 /** Indica si el juego tiene Supabase configurado. */
@@ -140,7 +152,8 @@ async function cargarPerfil(id: string): Promise<void> {
     const [respuestaPerfil, respuestaRecords] = await Promise.all([
         db
             .from("perfiles")
-            .select("id, usuario, nombre, avatar_version, puntos_totales, partidas, aciertos, preguntas")
+            // "*" y no una lista de columnas: así sigue funcionando aunque falte alguna columna nueva.
+            .select("*")
             .eq("id", id)
             .single(),
         db.from("records").select("modo, mejor, partidas").eq("usuario_id", id),
@@ -153,6 +166,7 @@ async function cargarPerfil(id: string): Promise<void> {
         id: datos.id,
         usuario: datos.usuario,
         nombre: datos.nombre ?? null,
+        codigo: datos.codigo ?? null,
         avatarVersion: datos.avatar_version,
         puntosTotales: Number(datos.puntos_totales),
         partidas: datos.partidas,
@@ -259,12 +273,17 @@ export async function salir(): Promise<void> {
 }
 
 /**
- * Cambia la contraseña del jugador con sesión.
+ * Cambia la contraseña del jugador con sesión, comprobando antes la actual.
+ * @param actual Contraseña actual.
  * @param nueva Contraseña nueva.
  */
-export async function cambiarContrasena(nueva: string): Promise<void> {
+export async function cambiarContrasena(actual: string, nueva: string): Promise<void> {
+    if (!perfil) throw new ErrorCuenta("no-autenticado");
     if (nueva.length < LONGITUD_MINIMA_CONTRASENA) throw new ErrorCuenta("contrasena-corta");
-    const { error } = await cliente().auth.updateUser({ password: nueva });
+    const db = cliente();
+    const comprobacion = await db.auth.signInWithPassword({ email: correoInterno(perfil.usuario), password: actual });
+    if (comprobacion.error) throw new ErrorCuenta("contrasena-actual");
+    const { error } = await db.auth.updateUser({ password: nueva });
     if (error) throw traducirError(error);
 }
 
@@ -377,4 +396,22 @@ export async function registrarPartidaOnline(partida: DatosPartida): Promise<Res
         nuevoRecord: resultado.nuevo_record,
         puntosTotales: Number(resultado.puntos_totales),
     };
+}
+
+/**
+ * Borra la cuenta del jugador para siempre: su foto (por la API de Storage)
+ * y después, en la base de datos, su usuario, perfil, récords y amistades.
+ */
+export async function borrarCuenta(): Promise<void> {
+    if (!perfil) throw new ErrorCuenta("no-autenticado");
+    const db = cliente();
+    // Si no tiene foto, el borrado simplemente no encuentra nada.
+    await db.storage.from(BUCKET_AVATARES).remove([`${perfil.id}/avatar`]);
+    const { error } = await db.rpc("borrar_mi_cuenta");
+    if (error) throw traducirError(error);
+    // La sesión ya no vale: se cierra solo en este navegador.
+    await db.auth.signOut({ scope: "local" }).catch(() => {});
+    perfil = null;
+    recordsOnline = new Map();
+    avisarCambio();
 }

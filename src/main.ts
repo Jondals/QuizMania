@@ -6,10 +6,13 @@
  *
  *   Inicio (elegir modo + tirar de la palanca) → Carga → Preguntas
  *          → Resultados → (Revisar respuestas) → Jugar de nuevo → Inicio
- *   Cabecera: logo (inicio), ranking y amigos, cuenta, idioma y ajustes.
+ *   Cabecera: logo y "Jugar" (inicio), ranking y amigos, idioma, ajustes
+ *   (con la música) y el menú de la cuenta.
+ * Al abrir la página se ve la pantalla de bienvenida (splash) unos segundos.
  */
 
 import { iniciarAjustes } from "./ajustes/ajustes";
+import { iniciarInterfazMusica } from "./audio/interfaz-musica";
 import { detenerEfecto, reproducirEfecto } from "./audio/efectos";
 import { TEMAS } from "./config/temas";
 import { iniciarInterfazCuenta } from "./cuenta/interfaz-cuenta";
@@ -20,7 +23,6 @@ import { mostrarPantalla, pantallaActual } from "./juego/pantallas";
 import {
     abandonarPartida,
     cambiarIdiomaPartida,
-    conectarAvisoInvitado,
     empezarRevision,
     hayPartidaEnJuego,
     iniciarPartida,
@@ -30,7 +32,13 @@ import {
     pintarResultados,
     terminarPartida,
 } from "./juego/partida";
-import { bloquearSelectorModo, iniciarSelectorModo, obtenerModoElegido, pintarSelectorModo } from "./juego/selector-modo";
+import {
+    bloquearSelectorModo,
+    iniciarSelectorModo,
+    moverModo,
+    obtenerModoElegido,
+    pintarSelectorModo,
+} from "./juego/selector-modo";
 import { cargarPantallaRanking, iniciarSocial } from "./online/social";
 import { conectarPalanca, girarRodillos, prepararRodillos } from "./tragaperras/tragaperras";
 import { confirmar } from "./utilidades/confirmar";
@@ -73,7 +81,7 @@ async function confirmarSalida(): Promise<boolean> {
 function mostrarInicio(): void {
     tituloTragaperras.textContent = texto("tiraDeLaPalanca");
     tituloTragaperras.dataset.texto = "tiraDeLaPalanca";
-    resultadoTragaperras.textContent = "";
+    resultadoTragaperras.textContent = "—";
     document.body.style.removeProperty("--acento");
     palanca.disabled = false;
     bloquearSelectorModo(false);
@@ -107,7 +115,7 @@ async function tirarDeLaPalanca(): Promise<void> {
     reproducirEfecto("giro");
     tituloTragaperras.textContent = texto("girando");
     delete tituloTragaperras.dataset.texto;
-    resultadoTragaperras.textContent = "";
+    resultadoTragaperras.textContent = "…";
 
     const temaElegido = modo.temasMezclados ? TEMAS[0] : elegirAlAzar(TEMAS);
     await girarRodillos(tirasRodillos, temaElegido);
@@ -117,7 +125,7 @@ async function tirarDeLaPalanca(): Promise<void> {
     document.body.style.setProperty("--acento", temaElegido.color);
     const nombreTema = temaElegido.nombre[obtenerIdioma()];
     tituloTragaperras.textContent = `${temaElegido.icono} ${nombreTema}`;
-    resultadoTragaperras.textContent = `${texto("temaElegido")}: ${nombreTema}`;
+    resultadoTragaperras.textContent = nombreTema;
 
     await esperar(PAUSA_TRAS_ELEGIR_TEMA);
     tragaperrasGirando = false;
@@ -138,32 +146,59 @@ function activarSonidoDeBotones(): void {
 }
 
 /**
- * En la portada, la barra espaciadora tira de la palanca (salvo si se está
- * escribiendo en un campo o hay un diálogo abierto).
+ * Atajos de teclado de la portada (salvo si se está escribiendo en un campo
+ * o hay un diálogo abierto):
+ *   Espacio  tira de la palanca.
+ *   ← / →    cambian de modo.
  * @param tirar Tira de la palanca con su animación.
  */
-function activarTeclaEspacio(tirar: () => void): void {
+function activarAtajosPortada(tirar: () => void): void {
     document.addEventListener("keydown", (evento) => {
-        if (evento.code !== "Space" || evento.repeat || pantallaActual() !== "inicio") return;
+        if (evento.repeat || pantallaActual() !== "inicio" || tragaperrasGirando) return;
         const objetivo = evento.target as HTMLElement | null;
         if (objetivo?.closest("input, textarea, select, dialog") || document.querySelector("dialog[open]")) return;
-        if (objetivo === palanca) return; // La propia palanca ya responde al Espacio.
-        evento.preventDefault();
-        tirar();
+        if (evento.code === "Space") {
+            if (objetivo === palanca) return; // La propia palanca ya responde al Espacio.
+            evento.preventDefault();
+            tirar();
+        } else if (evento.key === "ArrowLeft" || evento.key === "ArrowRight") {
+            evento.preventDefault();
+            moverModo(evento.key === "ArrowLeft" ? -1 : 1);
+        }
     });
+}
+
+/**
+ * Quita la pantalla de bienvenida cuando termina su animación, o antes si
+ * se pulsa una tecla o se hace clic.
+ */
+function prepararSplash(): void {
+    const splash = document.getElementById("splash");
+    if (!splash) return;
+    const quitar = () => {
+        splash.classList.add("oculta");
+        window.removeEventListener("keydown", quitar, true);
+        window.removeEventListener("pointerdown", quitar, true);
+    };
+    splash.addEventListener("animationend", (evento) => {
+        if (evento.target === splash) quitar();
+    });
+    window.addEventListener("keydown", quitar, true);
+    window.addEventListener("pointerdown", quitar, true);
 }
 
 /** Conecta cada botón de las pantallas con su acción. */
 function conectarBotones(): void {
     const tirarConAnimacion = conectarPalanca(palanca, () => void tirarDeLaPalanca());
-    activarTeclaEspacio(tirarConAnimacion);
-    obtenerElemento("boton-inicio").addEventListener("click", async () => {
+    activarAtajosPortada(tirarConAnimacion);
+    const irAlInicio = async () => {
         if (!tragaperrasGirando && (await confirmarSalida())) mostrarInicio();
-    });
+    };
+    obtenerElemento("boton-inicio").addEventListener("click", irAlInicio);
+    obtenerElemento("nav-jugar").addEventListener("click", irAlInicio);
     const botonRanking = obtenerElemento("boton-ranking");
     botonRanking.hidden = !hayOnline();
     botonRanking.addEventListener("click", () => void mostrarRanking());
-    obtenerElemento("boton-volver-ranking").addEventListener("click", mostrarInicio);
     obtenerElemento("boton-reintentar").addEventListener("click", mostrarInicio);
     obtenerElemento("boton-terminar").addEventListener("click", async () => {
         const acepta = await confirmar({
@@ -182,7 +217,6 @@ function conectarBotones(): void {
         boton.hidden = !hayOnline();
         boton.addEventListener("click", () => void mostrarRanking());
     });
-    conectarAvisoInvitado();
 }
 
 /**
@@ -207,10 +241,12 @@ function repintarAlCambiarIdioma(): void {
 
 /** Arranca el juego. */
 async function iniciarJuego(): Promise<void> {
+    prepararSplash();
     bloquearClicDerecho();
     repintarAlCambiarIdioma();
     iniciarAjustes();
-    iniciarInterfazCuenta();
+    iniciarInterfazMusica();
+    iniciarInterfazCuenta(() => void mostrarRanking());
     iniciarSelectorModo();
     prepararRodillos(tirasRodillos);
     activarSonidoDeBotones();
