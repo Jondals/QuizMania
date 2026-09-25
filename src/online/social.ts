@@ -1,68 +1,123 @@
 /**
  * social.ts
  * Pantalla de ranking y amigos, y la comparación con los amigos al acabar
- * una partida:
- *   - Clasificación de cada modo: tú y tus amigos, o los 50 mejores del mundo.
- *   - Tu código de amigo (copiar o compartir un enlace de invitación).
- *   - Añadir amigos por código y quitarlos. La amistad es mutua.
- *   - Tus récords guardados en este navegador.
- * Un enlace con ?amigo=CODIGO añade a ese amigo automáticamente.
+ * una partida. Todo sale de Supabase (funciones de supabase/schema.sql):
+ *   - Clasificación de puntos totales o del récord de cada modo, entre tus
+ *     amigos o global (los 50 mejores). La global se ve también sin cuenta.
+ *   - Añadir amigos por su nombre de usuario (la amistad es mutua) y quitarlos.
+ *   - Enlace de invitación: …/?amigo=<usuario> añade a ese amigo al entrar.
  */
 
-import { normalizarCodigo } from "../../api/_lib/compartido";
 import type { IdModo } from "../config/modos";
 import { buscarModo, MODOS } from "../config/modos";
-import type { ClaveTexto } from "../i18n/textos";
+import { esUsuarioValido, normalizarUsuario } from "../config/reglas";
+import { abrirEntrar, mensajeDeErrorCuenta, pintarAvatar } from "../cuenta/interfaz-cuenta";
+import { ErrorCuenta, EVENTO_SESION, hayOnline, nombreVisible, obtenerPerfil } from "../cuenta/sesion";
+import { supabase } from "../cuenta/supabase";
 import { EVENTO_IDIOMA_CAMBIADO, obtenerIdioma, texto } from "../i18n/textos";
 import { formatearPuntos } from "../juego/puntuacion";
-import { copiarAlPortapapeles, EVENTO_PERFIL_CAMBIADO, obtenerPerfil, pintarAvatar, subirPerfil } from "../perfil/perfil";
-import { leerRecord } from "../perfil/records";
+import { confirmar } from "../utilidades/confirmar";
+import { copiarAlPortapapeles } from "../utilidades/portapapeles";
 import { obtenerElemento } from "../utilidades/dom";
-import type { FilaRanking, JugadorPublico } from "./cliente";
-import { anadirAmigo, enviarPuntuacion, ErrorOnline, listarAmigos, obtenerRanking, quitarAmigo } from "./cliente";
 
 /** Filas que se enseñan en la comparación de la pantalla de resultados. */
 const FILAS_EN_RESULTADOS = 5;
 
+/** Clasificación: puntos totales o récord de un modo. */
+type ModoRanking = IdModo | "total";
+
+/** Fila de una clasificación. */
+interface FilaRanking {
+    posicion: number | null;
+    id: string;
+    usuario: string;
+    nombre: string | null;
+    avatar_version: number | null;
+    puntos: number | null;
+    soy_yo: boolean;
+}
+
+/** Amigo en la lista de amigos. */
+interface Amigo {
+    id: string;
+    usuario: string;
+    nombre: string | null;
+    avatar_version: number | null;
+    puntos_totales: number;
+}
+
 const elementos = {
-    avisoOffline: obtenerElemento("aviso-offline"),
     pestanasModo: obtenerElemento("pestanas-modo"),
     botonesAmbito: [...document.querySelectorAll<HTMLButtonElement>(".boton-ambito")],
     listaRanking: obtenerElemento("lista-ranking"),
     estadoRanking: obtenerElemento("estado-ranking"),
     miPosicion: obtenerElemento("mi-posicion"),
-    codigoSocial: obtenerElemento("codigo-social"),
-    mensajeCodigo: obtenerElemento("mensaje-codigo-social"),
+    panelAmigos: obtenerElemento("panel-amigos"),
+    amigosSinSesion: obtenerElemento("amigos-sin-sesion"),
+    amigosConSesion: obtenerElemento("amigos-con-sesion"),
+    miUsuario: obtenerElemento("mi-usuario-social"),
+    mensajeInvitacion: obtenerElemento("mensaje-invitacion"),
     formularioAmigo: obtenerElemento("formulario-amigo", HTMLFormElement),
-    campoCodigoAmigo: obtenerElemento("campo-codigo-amigo", HTMLInputElement),
+    campoAmigo: obtenerElemento("campo-amigo", HTMLInputElement),
     mensajeAmigo: obtenerElemento("mensaje-amigo"),
     listaAmigos: obtenerElemento("lista-amigos"),
-    listaRecords: obtenerElemento("lista-records"),
     bloqueAmigos: obtenerElemento("bloque-amigos"),
     posicionAmigos: obtenerElemento("posicion-amigos"),
     listaAmigosResultado: obtenerElemento("lista-amigos-resultado"),
     invitarAmigos: obtenerElemento("invitar-amigos"),
 };
 
-let modoRanking: IdModo = "clasico";
-let ambitoRanking: "amigos" | "global" = "amigos";
+let modoRanking: ModoRanking = "total";
+let ambitoRanking: "amigos" | "global" = "global";
 /** Evita pintar una respuesta vieja si se cambia de pestaña rápido. */
 let peticionRanking = 0;
 
+/** Devuelve el cliente de Supabase o lanza un error. */
+function cliente() {
+    if (!supabase) throw new ErrorCuenta("sin-servidor");
+    return supabase;
+}
+
 /**
- * Traduce un código de error del servidor a un mensaje para el jugador.
- * @param error Error recibido.
+ * Convierte el error de una función de la base de datos en ErrorCuenta.
+ * @param error Error de Supabase.
  */
-function mensajeDeError(error: unknown): string {
-    const codigos: Record<string, ClaveTexto> = {
-        "no-disponible": "onlineNoDisponible",
-        "codigo-no-existe": "codigoNoExiste",
-        "codigo-no-valido": "codigoNoValido",
-        "eres-tu": "codigoEresTu",
-        "demasiados-amigos": "demasiadosAmigos",
-    };
-    const clave = error instanceof ErrorOnline ? codigos[error.codigo] : undefined;
-    return texto(clave ?? "errorOnline");
+function errorDeBaseDeDatos(error: { message?: string }): ErrorCuenta {
+    const codigo = (error.message ?? "").trim();
+    return new ErrorCuenta(/^[a-z-]+$/.test(codigo) ? codigo : "sin-conexion");
+}
+
+/**
+ * Pide una clasificación al servidor.
+ * @param modo "total" o id de modo.
+ * @param ambito "amigos" o "global".
+ */
+async function pedirRanking(modo: ModoRanking, ambito: "amigos" | "global"): Promise<FilaRanking[]> {
+    const { data, error } = await cliente().rpc("ranking", { p_modo: modo, p_ambito: ambito, p_limite: 50 });
+    if (error) throw errorDeBaseDeDatos(error);
+    return (data as FilaRanking[]).map((fila) => ({
+        ...fila,
+        posicion: fila.posicion === null ? null : Number(fila.posicion),
+        puntos: fila.puntos === null ? null : Number(fila.puntos),
+    }));
+}
+
+/**
+ * Crea el bloque de nombre de una fila: nombre visible y debajo @usuario.
+ * @param jugador Usuario y nombre.
+ * @param sufijo Texto a añadir al nombre (por ejemplo "(tú)").
+ */
+function crearNombre(jugador: { usuario: string; nombre: string | null }, sufijo = ""): HTMLElement {
+    const bloque = document.createElement("span");
+    bloque.className = "fila-nombre";
+    const nombre = document.createElement("span");
+    nombre.className = "fila-nombre-principal";
+    nombre.textContent = sufijo ? `${nombreVisible(jugador)} ${sufijo}` : nombreVisible(jugador);
+    const usuario = document.createElement("span");
+    usuario.className = "fila-usuario";
+    usuario.textContent = `@${jugador.usuario}`;
+    bloque.append(nombre, usuario);
+    return bloque;
 }
 
 /**
@@ -72,7 +127,7 @@ function mensajeDeError(error: unknown): string {
 function crearFilaRanking(fila: FilaRanking): HTMLLIElement {
     const elemento = document.createElement("li");
     elemento.className = "fila-ranking";
-    elemento.classList.toggle("es-yo", fila.soyYo);
+    elemento.classList.toggle("es-yo", fila.soy_yo);
     if (fila.posicion !== null && fila.posicion <= 3) {
         elemento.classList.add(`podio-${fila.posicion}`);
     }
@@ -84,11 +139,9 @@ function crearFilaRanking(fila: FilaRanking): HTMLLIElement {
     const avatar = document.createElement("span");
     avatar.className = "avatar";
     avatar.setAttribute("aria-hidden", "true");
-    pintarAvatar(avatar, fila.avatar, fila.color);
+    pintarAvatar(avatar, { id: fila.id, usuario: fila.usuario, nombre: fila.nombre, avatarVersion: fila.avatar_version });
 
-    const nombre = document.createElement("span");
-    nombre.className = "fila-nombre";
-    nombre.textContent = fila.soyYo ? `${fila.nombre} (${texto("tu")})` : fila.nombre;
+    const nombre = crearNombre(fila, fila.soy_yo ? `(${texto("tu")})` : "");
 
     const puntos = document.createElement("span");
     puntos.className = "fila-puntos";
@@ -100,16 +153,17 @@ function crearFilaRanking(fila: FilaRanking): HTMLLIElement {
 
 /* ---------- Clasificación ---------- */
 
-/** Crea las pestañas de modos. */
+/** Crea las pestañas: puntos totales y un récord por modo. */
 function crearPestanasModo(): void {
+    const opciones: ModoRanking[] = ["total", ...MODOS.map((modo) => modo.id)];
     elementos.pestanasModo.replaceChildren(
-        ...MODOS.map((modo) => {
+        ...opciones.map((opcion) => {
             const boton = document.createElement("button");
             boton.type = "button";
             boton.className = "pestana";
-            boton.dataset.modo = modo.id;
+            boton.dataset.modo = opcion;
             boton.addEventListener("click", () => {
-                modoRanking = modo.id;
+                modoRanking = opcion;
                 void cargarRanking();
             });
             return boton;
@@ -122,16 +176,21 @@ function crearPestanasModo(): void {
 function pintarPestanas(): void {
     const idioma = obtenerIdioma();
     elementos.pestanasModo.querySelectorAll<HTMLButtonElement>(".pestana").forEach((boton) => {
-        const modo = buscarModo(boton.dataset.modo ?? "");
-        boton.textContent = `${modo.icono} ${modo.nombre[idioma]}`;
-        boton.setAttribute("aria-pressed", String(modo.id === modoRanking));
+        const opcion = boton.dataset.modo ?? "total";
+        if (opcion === "total") {
+            boton.textContent = `🏆 ${texto("puntosTotales")}`;
+        } else {
+            const modo = buscarModo(opcion);
+            boton.textContent = `${modo.icono} ${modo.nombre[idioma]}`;
+        }
+        boton.setAttribute("aria-pressed", String(opcion === modoRanking));
     });
     elementos.botonesAmbito.forEach((boton) => {
         boton.setAttribute("aria-pressed", String(boton.dataset.ambito === ambitoRanking));
     });
 }
 
-/** Descarga y pinta la clasificación del modo y ámbito elegidos. */
+/** Descarga y pinta la clasificación elegida. */
 async function cargarRanking(): Promise<void> {
     const miPeticion = ++peticionRanking;
     pintarPestanas();
@@ -139,21 +198,25 @@ async function cargarRanking(): Promise<void> {
     elementos.estadoRanking.hidden = false;
     elementos.listaRanking.replaceChildren();
     elementos.miPosicion.textContent = "";
+
+    if (ambitoRanking === "amigos" && !obtenerPerfil()) {
+        elementos.estadoRanking.textContent = texto("entraParaAmigos");
+        return;
+    }
     try {
-        const ranking = await obtenerRanking(modoRanking, ambitoRanking);
+        const filas = await pedirRanking(modoRanking, ambitoRanking);
         if (miPeticion !== peticionRanking) return;
-        elementos.listaRanking.replaceChildren(...ranking.filas.map(crearFilaRanking));
-        const soloYo = ambitoRanking === "amigos" && ranking.filas.length <= 1;
-        elementos.estadoRanking.hidden = ranking.filas.length > 0 && !soloYo;
+        elementos.listaRanking.replaceChildren(...filas.map(crearFilaRanking));
+        const soloYo = ambitoRanking === "amigos" && filas.length <= 1;
+        elementos.estadoRanking.hidden = filas.length > 0 && !soloYo;
         elementos.estadoRanking.textContent = soloYo ? texto("sinAmigosTodavia") : texto("rankingVacio");
-        if (ranking.miPosicion !== null) {
-            elementos.miPosicion.textContent = `${texto("tuPosicion")}: #${ranking.miPosicion}`;
+        const yo = filas.find((fila) => fila.soy_yo);
+        if (yo?.posicion) {
+            elementos.miPosicion.textContent = `${texto("tuPosicion")}: #${yo.posicion}`;
         }
-        elementos.avisoOffline.hidden = true;
     } catch (error) {
         if (miPeticion !== peticionRanking) return;
-        elementos.estadoRanking.textContent = mensajeDeError(error);
-        elementos.avisoOffline.hidden = !(error instanceof ErrorOnline && error.codigo === "no-disponible");
+        elementos.estadoRanking.textContent = mensajeDeErrorCuenta(error);
     }
 }
 
@@ -163,187 +226,151 @@ async function cargarRanking(): Promise<void> {
  * Crea la fila de un amigo con el botón de quitar.
  * @param amigo Datos del amigo.
  */
-function crearFilaAmigo(amigo: JugadorPublico): HTMLLIElement {
+function crearFilaAmigo(amigo: Amigo): HTMLLIElement {
     const elemento = document.createElement("li");
     elemento.className = "fila-amigo";
 
     const avatar = document.createElement("span");
     avatar.className = "avatar";
     avatar.setAttribute("aria-hidden", "true");
-    pintarAvatar(avatar, amigo.avatar, amigo.color);
+    pintarAvatar(avatar, { id: amigo.id, usuario: amigo.usuario, nombre: amigo.nombre, avatarVersion: amigo.avatar_version });
 
-    const nombre = document.createElement("span");
-    nombre.className = "fila-nombre";
-    nombre.textContent = amigo.nombre;
+    const nombre = crearNombre(amigo);
 
-    const codigo = document.createElement("span");
-    codigo.className = "fila-codigo";
-    codigo.textContent = amigo.codigo;
+    const puntos = document.createElement("span");
+    puntos.className = "fila-puntos fila-puntos--suave";
+    puntos.textContent = `${formatearPuntos(Number(amigo.puntos_totales), obtenerIdioma())} pts`;
 
     const quitar = document.createElement("button");
     quitar.type = "button";
     quitar.className = "boton-icono boton-icono--pequeno";
     quitar.textContent = "✕";
-    quitar.setAttribute("aria-label", `${texto("quitarAmigo")}: ${amigo.nombre}`);
+    quitar.setAttribute("aria-label", `${texto("quitarAmigo")}: ${nombreVisible(amigo)}`);
     quitar.addEventListener("click", async () => {
-        if (!window.confirm(`${texto("confirmarQuitarAmigo")} ${amigo.nombre}?`)) {
+        const acepta = await confirmar({
+            titulo: texto("quitarAmigo"),
+            mensaje: `${texto("confirmarQuitarAmigo")} ${nombreVisible(amigo)}?`,
+            aceptar: texto("quitarAmigo"),
+            peligroso: true,
+        });
+        if (!acepta) return;
+        const { error } = await cliente().rpc("quitar_amigo", { p_amigo: amigo.id });
+        if (error) {
+            elementos.mensajeAmigo.textContent = mensajeDeErrorCuenta(errorDeBaseDeDatos(error));
             return;
         }
-        try {
-            await quitarAmigo(amigo.id);
-            elemento.remove();
-            void cargarRanking();
-        } catch (error) {
-            elementos.mensajeAmigo.textContent = mensajeDeError(error);
-        }
+        elemento.remove();
+        void cargarRanking();
     });
 
-    elemento.append(avatar, nombre, codigo, quitar);
+    elemento.append(avatar, nombre, puntos, quitar);
     return elemento;
 }
 
-/** Descarga y pinta la lista de amigos. */
+/** Pinta el panel de amigos según haya sesión o no, y carga la lista. */
 async function cargarAmigos(): Promise<void> {
-    try {
-        const amigos = await listarAmigos();
-        elementos.listaAmigos.replaceChildren(...amigos.map(crearFilaAmigo));
-        elementos.listaAmigos.dataset.vacia = String(amigos.length === 0);
-    } catch {
-        elementos.listaAmigos.replaceChildren();
-        elementos.listaAmigos.dataset.vacia = "true";
-    }
+    const perfil = obtenerPerfil();
+    elementos.amigosSinSesion.hidden = perfil !== null;
+    elementos.amigosConSesion.hidden = perfil === null;
+    if (!perfil) return;
+    elementos.miUsuario.textContent = perfil.usuario;
+    const { data, error } = await cliente().rpc("mis_amigos");
+    const amigos = error ? [] : (data as Amigo[]);
+    elementos.listaAmigos.replaceChildren(...amigos.map(crearFilaAmigo));
+    elementos.listaAmigos.dataset.vacia = String(amigos.length === 0);
 }
 
 /**
- * Añade un amigo por código y refresca las listas.
- * @param codigoEscrito Código tal como lo escribió el jugador.
+ * Añade un amigo por su usuario y refresca las listas.
+ * @param usuarioEscrito Usuario tal como lo escribió el jugador.
  */
-async function anadirAmigoPorCodigo(codigoEscrito: string): Promise<void> {
-    const codigo = normalizarCodigo(codigoEscrito);
-    if (!codigo) {
-        elementos.mensajeAmigo.textContent = texto("codigoNoValido");
+async function anadirAmigo(usuarioEscrito: string): Promise<void> {
+    const usuario = normalizarUsuario(usuarioEscrito.replace(/^@/, ""));
+    elementos.mensajeAmigo.classList.remove("es-error");
+    if (!esUsuarioValido(usuario)) {
+        elementos.mensajeAmigo.textContent = texto("errorUsuarioNoValido");
         elementos.mensajeAmigo.classList.add("es-error");
         return;
     }
     elementos.mensajeAmigo.textContent = texto("cargando");
-    elementos.mensajeAmigo.classList.remove("es-error");
-    try {
-        const amigo = await anadirAmigo(codigo);
-        elementos.mensajeAmigo.textContent = `${texto("amigoAnadido")}: ${amigo.nombre} ${amigo.avatar}`;
-        elementos.campoCodigoAmigo.value = "";
-        ambitoRanking = "amigos";
-        await Promise.all([cargarAmigos(), cargarRanking()]);
-    } catch (error) {
-        elementos.mensajeAmigo.textContent = mensajeDeError(error);
+    const { data, error } = await cliente().rpc("anadir_amigo", { p_usuario: usuario });
+    if (error) {
+        elementos.mensajeAmigo.textContent = mensajeDeErrorCuenta(errorDeBaseDeDatos(error));
         elementos.mensajeAmigo.classList.add("es-error");
-    }
-}
-
-/** Pinta el código propio. */
-function pintarCodigoPropio(): void {
-    elementos.codigoSocial.textContent = obtenerPerfil().codigo ?? "······";
-}
-
-/** Enlace que añade al jugador como amigo al abrirlo. */
-function enlaceDeInvitacion(codigo: string): string {
-    return `${location.origin}${location.pathname}?amigo=${codigo}`;
-}
-
-/** Comparte (o copia) el enlace de invitación. */
-async function compartirInvitacion(): Promise<void> {
-    const codigo = obtenerPerfil().codigo ?? (await subirPerfil());
-    if (!codigo) {
-        elementos.mensajeCodigo.textContent = texto("onlineNoDisponible");
         return;
     }
-    const enlace = enlaceDeInvitacion(codigo);
-    const datos = { title: "QuizMania", text: texto("textoInvitacion"), url: enlace };
+    elementos.mensajeAmigo.textContent = `${texto("amigoAnadido")}: ${nombreVisible(data as Amigo)}`;
+    elementos.campoAmigo.value = "";
+    ambitoRanking = "amigos";
+    await Promise.all([cargarAmigos(), cargarRanking()]);
+}
+
+/** Comparte (o copia) el enlace de invitación con el usuario propio. */
+async function compartirInvitacion(): Promise<void> {
+    const perfil = obtenerPerfil();
+    if (!perfil) {
+        abrirEntrar();
+        return;
+    }
+    const enlace = `${location.origin}${location.pathname}?amigo=${encodeURIComponent(perfil.usuario)}`;
     if (navigator.share) {
         try {
-            await navigator.share(datos);
+            await navigator.share({ title: "QuizMania", text: texto("textoInvitacion"), url: enlace });
             return;
         } catch {
             // Cancelado o no permitido: se copia al portapapeles.
         }
     }
-    elementos.mensajeCodigo.textContent = (await copiarAlPortapapeles(enlace)) ? texto("enlaceCopiado") : enlace;
+    elementos.mensajeInvitacion.textContent = (await copiarAlPortapapeles(enlace)) ? texto("enlaceCopiado") : enlace;
 }
 
-/* ---------- Récords locales ---------- */
-
-/** Pinta los récords guardados en este navegador. */
-function pintarRecords(): void {
-    const idioma = obtenerIdioma();
-    elementos.listaRecords.replaceChildren(
-        ...MODOS.map((modo) => {
-            const { mejor, partidas } = leerRecord(modo.id);
-            const fila = document.createElement("div");
-            const nombre = document.createElement("dt");
-            nombre.textContent = `${modo.icono} ${modo.nombre[idioma]}`;
-            const valor = document.createElement("dd");
-            valor.textContent = formatearPuntos(mejor, idioma);
-            valor.title = `${partidas} ${texto("partidas")}`;
-            fila.append(nombre, valor);
-            return fila;
-        }),
-    );
-}
-
-/* ---------- Pantalla ---------- */
+/* ---------- Pantalla y resultados ---------- */
 
 /** Rellena la pantalla de ranking (se llama al entrar en ella). */
 export async function cargarPantallaRanking(): Promise<void> {
-    pintarRecords();
-    pintarCodigoPropio();
-    elementos.mensajeCodigo.textContent = "";
     elementos.mensajeAmigo.textContent = "";
-    if (!obtenerPerfil().codigo) {
-        await subirPerfil();
-        pintarCodigoPropio();
+    elementos.mensajeInvitacion.textContent = "";
+    if (!obtenerPerfil() && ambitoRanking === "amigos") {
+        ambitoRanking = "global";
     }
     await Promise.all([cargarRanking(), cargarAmigos()]);
 }
 
 /**
- * Tras una partida: envía la puntuación y enseña cómo quedas entre tus
- * amigos en ese modo. Si no hay servidor, el bloque queda oculto.
+ * Tras una partida guardada: enseña cómo quedas entre tus amigos en ese modo.
  * @param modo Modo jugado.
- * @param puntos Puntos conseguidos.
  */
-export async function mostrarComparacionConAmigos(modo: IdModo, puntos: number): Promise<void> {
+export async function mostrarComparacionConAmigos(modo: IdModo): Promise<void> {
     elementos.bloqueAmigos.hidden = true;
+    if (!obtenerPerfil()) return;
     try {
-        await enviarPuntuacion(modo, puntos);
-        const ranking = await obtenerRanking(modo, "amigos");
-        const tieneAmigos = ranking.filas.length > 1;
+        const filas = await pedirRanking(modo, "amigos");
+        const tieneAmigos = filas.length > 1;
+        const yo = filas.find((fila) => fila.soy_yo);
         elementos.invitarAmigos.hidden = tieneAmigos;
         elementos.listaAmigosResultado.hidden = !tieneAmigos;
-        elementos.posicionAmigos.textContent =
-            tieneAmigos && ranking.miPosicion !== null ? `#${ranking.miPosicion} / ${ranking.filas.length}` : "";
+        elementos.posicionAmigos.textContent = tieneAmigos && yo?.posicion ? `#${yo.posicion} / ${filas.length}` : "";
 
         // Se enseñan los primeros y, si no estás entre ellos, también tu fila.
-        const filas = ranking.filas.slice(0, FILAS_EN_RESULTADOS);
-        const yo = ranking.filas.find((fila) => fila.soyYo);
-        if (yo && !filas.includes(yo)) {
-            filas[filas.length - 1] = yo;
-        }
-        elementos.listaAmigosResultado.replaceChildren(...filas.map(crearFilaRanking));
+        const visibles = filas.slice(0, FILAS_EN_RESULTADOS);
+        if (yo && !visibles.includes(yo)) visibles[visibles.length - 1] = yo;
+        elementos.listaAmigosResultado.replaceChildren(...visibles.map(crearFilaRanking));
         elementos.bloqueAmigos.hidden = false;
     } catch {
-        // Sin servidor: solo cuentan los récords locales.
+        // Sin conexión: no se enseña la comparación.
     }
 }
 
-/** Si la página se abrió con ?amigo=CODIGO, devuelve ese código y lo quita de la URL. */
+/** Si la página se abrió con ?amigo=usuario, devuelve ese usuario y lo quita de la URL. */
 function leerInvitacionDeLaUrl(): string | null {
     const parametros = new URLSearchParams(location.search);
-    const codigo = normalizarCodigo(parametros.get("amigo"));
+    const usuario = normalizarUsuario(parametros.get("amigo") ?? "");
     if (parametros.has("amigo")) {
         parametros.delete("amigo");
         const busqueda = parametros.toString();
         history.replaceState(null, "", `${location.pathname}${busqueda ? `?${busqueda}` : ""}${location.hash}`);
     }
-    return codigo;
+    return esUsuarioValido(usuario) ? usuario : null;
 }
 
 /**
@@ -351,35 +378,33 @@ function leerInvitacionDeLaUrl(): string | null {
  * @param abrirPantalla Muestra la pantalla de ranking (lo decide main.ts).
  */
 export function iniciarSocial(abrirPantalla: () => void): void {
+    if (!hayOnline()) return;
     crearPestanasModo();
     elementos.botonesAmbito.forEach((boton) => {
         boton.addEventListener("click", () => {
-            ambitoRanking = boton.dataset.ambito === "global" ? "global" : "amigos";
+            ambitoRanking = boton.dataset.ambito === "amigos" ? "amigos" : "global";
             void cargarRanking();
         });
     });
     elementos.formularioAmigo.addEventListener("submit", (evento) => {
         evento.preventDefault();
-        void anadirAmigoPorCodigo(elementos.campoCodigoAmigo.value);
-    });
-    obtenerElemento("boton-copiar-codigo-social").addEventListener("click", async () => {
-        const codigo = obtenerPerfil().codigo;
-        if (codigo && (await copiarAlPortapapeles(codigo))) {
-            elementos.mensajeCodigo.textContent = texto("codigoCopiado");
-        }
+        void anadirAmigo(elementos.campoAmigo.value);
     });
     obtenerElemento("boton-compartir").addEventListener("click", () => void compartirInvitacion());
     obtenerElemento("boton-invitar-resultados").addEventListener("click", () => void compartirInvitacion());
 
-    document.addEventListener(EVENTO_IDIOMA_CAMBIADO, () => {
-        pintarPestanas();
-        pintarRecords();
+    document.addEventListener(EVENTO_IDIOMA_CAMBIADO, pintarPestanas);
+    document.addEventListener(EVENTO_SESION, () => {
+        if (!obtenerElemento("pantalla-ranking").hidden) void cargarPantallaRanking();
     });
-    document.addEventListener(EVENTO_PERFIL_CAMBIADO, pintarCodigoPropio);
 
     const invitacion = leerInvitacionDeLaUrl();
     if (invitacion) {
-        abrirPantalla();
-        void anadirAmigoPorCodigo(invitacion);
+        const aceptar = () => {
+            abrirPantalla();
+            void anadirAmigo(invitacion);
+        };
+        if (obtenerPerfil()) aceptar();
+        else abrirEntrar("registro", aceptar);
     }
 }

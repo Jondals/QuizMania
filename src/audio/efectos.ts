@@ -1,30 +1,47 @@
 /**
  * efectos.ts
- * Efectos de sonido del juego (acierto, fallo, giro de la tragaperras, tema
- * elegido) y el "clic" de los botones, todos con un volumen común ajustable.
- * Los MP3 no se descargan hasta que suenan por primera vez, para que la
- * página cargue rápido. El clic se sintetiza con Web Audio (sin archivos).
+ * Todos los sonidos del juego, sintetizados con Web Audio (no hay archivos
+ * de audio que descargar):
+ *   clic      Botones.
+ *   acierto   Respuesta correcta: dos notas que suben.
+ *   fallo     Respuesta incorrecta: zumbido grave que baja.
+ *   victoria  Partida ganada: arpegio con acorde final.
+ *   derrota   Partida perdida: cuatro notas que caen.
+ *   giro      Tic-tac de los rodillos girando (se frena poco a poco).
+ *   tema      Campanilla al pararse los rodillos.
+ *   tic       Aviso de los últimos segundos.
+ * El volumen es común a todos y se ajusta en Ajustes.
  */
 
-/** Efectos disponibles y su archivo. */
-const ARCHIVOS_DE_EFECTOS = {
-    acierto: "sfx/acierto.mp3",
-    fallo: "sfx/fallo.mp3",
-    giro: "sfx/giro.mp3",
-    temaElegido: "sfx/tema-elegido.mp3",
-} as const;
-
-/** Nombre de un efecto de sonido. */
-export type NombreEfecto = keyof typeof ARCHIVOS_DE_EFECTOS;
-
-/** Reproductores ya creados (se crean la primera vez que se usan). */
-const reproductores = new Map<NombreEfecto, HTMLAudioElement>();
+/** Efectos disponibles. */
+export type NombreEfecto = "clic" | "acierto" | "fallo" | "victoria" | "derrota" | "giro" | "tema" | "tic";
 
 /** Volumen de los efectos entre 0 y 1. */
 let volumenEfectos = 0.7;
 
-/** Contexto de Web Audio para el clic (se crea tras la primera interacción). */
-let contextoAudio: AudioContext | null = null;
+/** Contexto de audio (se crea tras la primera interacción del jugador). */
+let contexto: AudioContext | null = null;
+/** Ganancia general a la que se conecta todo. */
+let salida: GainNode | null = null;
+/** Osciladores del giro, para poder cortarlo. */
+let osciladoresGiro: OscillatorNode[] = [];
+
+/** Forma de onda de un oscilador. */
+type Onda = OscillatorType;
+
+/** Opciones de una nota. */
+interface OpcionesNota {
+    /** Segundos desde ahora en que empieza. */
+    inicio?: number;
+    duracion?: number;
+    onda?: Onda;
+    /** Volumen relativo (0-1). */
+    volumen?: number;
+    /** Frecuencia final si la nota se desliza. */
+    deslizarA?: number;
+    /** Frecuencia de corte de un filtro paso bajo (para suavizar ondas ásperas). */
+    filtro?: number;
+}
 
 /**
  * Cambia el volumen de todos los efectos.
@@ -32,75 +49,169 @@ let contextoAudio: AudioContext | null = null;
  */
 export function establecerVolumenEfectos(volumen: number): void {
     volumenEfectos = Math.min(1, Math.max(0, volumen));
-    reproductores.forEach((reproductor) => (reproductor.volume = volumenEfectos));
-}
-
-/**
- * Devuelve (creándolo si hace falta) el reproductor de un efecto.
- * @param nombre Efecto.
- */
-function obtenerReproductor(nombre: NombreEfecto): HTMLAudioElement {
-    let reproductor = reproductores.get(nombre);
-    if (!reproductor) {
-        reproductor = new Audio(ARCHIVOS_DE_EFECTOS[nombre]);
-        reproductores.set(nombre, reproductor);
+    if (salida) {
+        salida.gain.value = volumenEfectos;
     }
-    reproductor.volume = volumenEfectos;
-    return reproductor;
+}
+
+/** Devuelve el contexto de audio listo para sonar, o null si no se puede. */
+function prepararAudio(): { ctx: AudioContext; destino: GainNode } | null {
+    if (volumenEfectos === 0) {
+        return null;
+    }
+    try {
+        if (!contexto) {
+            contexto = new AudioContext();
+            salida = contexto.createGain();
+            salida.gain.value = volumenEfectos;
+            salida.connect(contexto.destination);
+        }
+        if (contexto.state === "suspended") {
+            void contexto.resume();
+        }
+        return { ctx: contexto, destino: salida as GainNode };
+    } catch {
+        // Navegador sin Web Audio: el juego sigue sin sonido.
+        return null;
+    }
 }
 
 /**
- * Reproduce un efecto desde el principio.
+ * Toca una nota con envolvente corta (ataque rápido y caída exponencial).
+ * @param frecuencia Frecuencia en Hz.
+ * @param opciones Momento, duración, onda, volumen, deslizamiento y filtro.
+ * @returns El oscilador (o null si no hay audio).
+ */
+function nota(frecuencia: number, opciones: OpcionesNota = {}): OscillatorNode | null {
+    const audio = prepararAudio();
+    if (!audio) {
+        return null;
+    }
+    const { ctx, destino } = audio;
+    const { inicio = 0, duracion = 0.15, onda = "triangle", volumen = 0.3, deslizarA, filtro } = opciones;
+    const t0 = ctx.currentTime + inicio;
+
+    const oscilador = ctx.createOscillator();
+    oscilador.type = onda;
+    oscilador.frequency.setValueAtTime(frecuencia, t0);
+    if (deslizarA) {
+        oscilador.frequency.exponentialRampToValueAtTime(deslizarA, t0 + duracion);
+    }
+
+    const envolvente = ctx.createGain();
+    envolvente.gain.setValueAtTime(0.0001, t0);
+    envolvente.gain.exponentialRampToValueAtTime(volumen, t0 + 0.01);
+    envolvente.gain.exponentialRampToValueAtTime(0.0001, t0 + duracion);
+
+    let ultimo: AudioNode = oscilador;
+    if (filtro) {
+        const pasoBajo = ctx.createBiquadFilter();
+        pasoBajo.type = "lowpass";
+        pasoBajo.frequency.value = filtro;
+        oscilador.connect(pasoBajo);
+        ultimo = pasoBajo;
+    }
+    ultimo.connect(envolvente);
+    envolvente.connect(destino);
+    oscilador.start(t0);
+    oscilador.stop(t0 + duracion + 0.05);
+    return oscilador;
+}
+
+/** Tic-tac de los rodillos: pulsos cada vez más separados durante ~2 s. */
+function sonarGiro(): void {
+    detenerGiro();
+    let momento = 0;
+    let separacion = 0.045;
+    while (momento < 2.3) {
+        const oscilador = nota(momento % 0.2 < 0.1 ? 1300 : 1100, {
+            inicio: momento,
+            duracion: 0.03,
+            onda: "square",
+            volumen: 0.07,
+            filtro: 3000,
+        });
+        if (oscilador) {
+            osciladoresGiro.push(oscilador);
+        }
+        momento += separacion;
+        separacion *= 1.045;
+    }
+}
+
+/** Corta el tic-tac del giro si sigue sonando. */
+function detenerGiro(): void {
+    osciladoresGiro.forEach((oscilador) => {
+        try {
+            oscilador.stop();
+        } catch {
+            // Ya había terminado.
+        }
+    });
+    osciladoresGiro = [];
+}
+
+/**
+ * Reproduce un efecto.
  * @param nombre Efecto a reproducir.
  */
 export function reproducirEfecto(nombre: NombreEfecto): void {
-    if (volumenEfectos === 0) {
-        return;
+    switch (nombre) {
+        case "clic":
+            nota(620, { duracion: 0.07, volumen: 0.14, deslizarA: 930 });
+            break;
+        case "acierto":
+            nota(784, { duracion: 0.13, volumen: 0.28 });
+            nota(1175, { inicio: 0.09, duracion: 0.28, volumen: 0.28 });
+            nota(2350, { inicio: 0.09, duracion: 0.2, onda: "sine", volumen: 0.06 });
+            break;
+        case "fallo":
+            nota(220, { duracion: 0.18, onda: "sawtooth", volumen: 0.18, deslizarA: 160, filtro: 900 });
+            nota(180, { inicio: 0.16, duracion: 0.32, onda: "sawtooth", volumen: 0.18, deslizarA: 110, filtro: 700 });
+            break;
+        case "victoria":
+            [523, 659, 784, 1047].forEach((frecuencia, posicion) =>
+                nota(frecuencia, { inicio: posicion * 0.1, duracion: 0.16, volumen: 0.24 }),
+            );
+            [1047, 1319, 1568].forEach((frecuencia) =>
+                nota(frecuencia, { inicio: 0.42, duracion: 0.9, onda: "sine", volumen: 0.16 }),
+            );
+            nota(523, { inicio: 0.42, duracion: 0.9, volumen: 0.14 });
+            break;
+        case "derrota":
+            [392, 370, 349].forEach((frecuencia, posicion) =>
+                nota(frecuencia, { inicio: posicion * 0.26, duracion: 0.24, onda: "sawtooth", volumen: 0.14, filtro: 1200 }),
+            );
+            nota(330, { inicio: 0.78, duracion: 0.8, onda: "sawtooth", volumen: 0.14, deslizarA: 262, filtro: 900 });
+            break;
+        case "giro":
+            sonarGiro();
+            break;
+        case "tema":
+            nota(1047, { duracion: 0.6, onda: "sine", volumen: 0.22 });
+            nota(1568, { inicio: 0.06, duracion: 0.7, onda: "sine", volumen: 0.16 });
+            nota(2093, { inicio: 0.12, duracion: 0.5, onda: "sine", volumen: 0.08 });
+            break;
+        case "tic":
+            nota(1000, { duracion: 0.05, onda: "square", volumen: 0.08, filtro: 2500 });
+            break;
     }
-    const reproductor = obtenerReproductor(nombre);
-    reproductor.currentTime = 0;
-    // play() falla si el navegador bloquea el audio; no es un error del juego.
-    reproductor.play().catch(() => {});
 }
 
 /**
- * Detiene un efecto que esté sonando.
+ * Detiene un efecto largo que esté sonando (solo el giro dura lo bastante).
  * @param nombre Efecto a detener.
  */
 export function detenerEfecto(nombre: NombreEfecto): void {
-    const reproductor = reproductores.get(nombre);
-    if (reproductor) {
-        reproductor.pause();
-        reproductor.currentTime = 0;
+    if (nombre === "giro") {
+        detenerGiro();
     }
 }
 
 /**
- * Reproduce un "clic" corto de botón generado con un oscilador.
- * @param tono Frecuencia inicial en Hz (más alto = más agudo).
+ * Golpe corto de un rodillo al pararse (más agudo en cada rodillo).
+ * @param tono Frecuencia en Hz.
  */
-export function reproducirClic(tono = 660): void {
-    if (volumenEfectos === 0) {
-        return;
-    }
-    try {
-        contextoAudio ??= new AudioContext();
-        const ahora = contextoAudio.currentTime;
-        const oscilador = contextoAudio.createOscillator();
-        const ganancia = contextoAudio.createGain();
-
-        oscilador.type = "triangle";
-        oscilador.frequency.setValueAtTime(tono, ahora);
-        oscilador.frequency.exponentialRampToValueAtTime(tono * 1.5, ahora + 0.06);
-
-        ganancia.gain.setValueAtTime(0.0001, ahora);
-        ganancia.gain.exponentialRampToValueAtTime(0.25 * volumenEfectos + 0.0001, ahora + 0.01);
-        ganancia.gain.exponentialRampToValueAtTime(0.0001, ahora + 0.12);
-
-        oscilador.connect(ganancia).connect(contextoAudio.destination);
-        oscilador.start(ahora);
-        oscilador.stop(ahora + 0.13);
-    } catch {
-        // Navegador sin Web Audio: simplemente no suena el clic.
-    }
+export function reproducirParadaRodillo(tono: number): void {
+    nota(tono, { duracion: 0.09, onda: "square", volumen: 0.12, deslizarA: tono * 0.7, filtro: 2200 });
 }

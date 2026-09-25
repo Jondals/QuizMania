@@ -2,3 +2,5 @@ node_modules/
 dist/
 .pruebas/
 .vercel/
+.env
+.env.local

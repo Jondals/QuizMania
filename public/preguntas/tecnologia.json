@@ -1,0 +1,22 @@
+[
+["¿Qué empresa fabrica el iPhone?","Apple","Samsung","Google","Huawei"],
+["¿Qué significa la sigla USB?","Universal Serial Bus","Unidad de Sistema Básico","Ultra Speed Bandwidth","Universal System Board"],
+["¿Para qué se usa el Wi-Fi?","Para conectarse a una red sin cables","Para cargar la batería","Para imprimir en 3D","Para medir la temperatura"],
+["¿Qué componente es considerado el 'cerebro' del ordenador?","El procesador (CPU)","La memoria RAM","El disco duro","La fuente de alimentación"],
+["¿Qué sistema operativo para móviles desarrolla Google?","Android","iOS","Windows Phone","HarmonyOS"],
+["¿Qué empresa creó el buscador más usado del mundo?","Google","Microsoft","Yahoo","Apple"],
+["¿Qué unidad mide la capacidad de almacenamiento: KB, MB, GB…?","Bytes","Hercios","Vatios","Píxeles"],
+["¿Cuántos megabytes tiene aproximadamente un gigabyte?","1024","100","10","1.000.000"],
+["¿Qué tecnología permite pagar acercando el móvil al datáfono?","NFC","GPS","Bluetooth LE Audio","Infrarrojos"],
+["¿Qué significa la sigla GPS?","Sistema de Posicionamiento Global","Gestor de Paquetes del Sistema","Grupo de Proveedores de Señal","Generador de Potencia Solar"],
+["¿Qué tipo de memoria se borra al apagar el ordenador?","RAM","ROM","SSD","Memoria USB"],
+["¿Qué empresa desarrolló la consola Nintendo Switch?","Nintendo","Sony","Sega","Valve"],
+["¿Cómo se llama el asistente de voz de Apple?","Siri","Alexa","Cortana","Bixby"],
+["¿Cómo se llama el asistente de voz de Amazon?","Alexa","Siri","Google Assistant","Cortana"],
+["¿Qué tipo de pantalla no necesita retroiluminación porque cada píxel emite su propia luz?","OLED","LCD","TN","CRT"],
+["¿Qué es la 'nube' en informática?","Servidores en internet que guardan datos y ejecutan servicios","Un virus informático","Un tipo de pantalla","Un cable de red"],
+["¿Qué dispositivo convierte la señal de internet para la red de casa?","El router","El monitor","La impresora","El altavoz"],
+["¿Qué tecnología de red móvil sucede al 4G?","5G","3G","LTE-A","Wi-Fi 6"],
+["¿Qué significa la sigla SSD en almacenamiento?","Unidad de estado sólido","Disco de sistema seguro","Servidor de datos simple","Soporte de sonido digital"],
+["¿Qué empresa fabricó el primer Walkman?","Sony","Panasonic","Philips","Toshiba"]
+]

@@ -11,13 +11,16 @@
  *   - o el jugador pulsa "Terminar".
  */
 
-import { reproducirClic, reproducirEfecto } from "../audio/efectos";
+import { reproducirEfecto } from "../audio/efectos";
 import type { Modo } from "../config/modos";
 import type { Tema } from "../config/temas";
 import { obtenerIdioma, texto } from "../i18n/textos";
+import { abrirEntrar, mensajeDeErrorCuenta } from "../cuenta/interfaz-cuenta";
+import { hayOnline, obtenerPerfil, registrarPartidaOnline } from "../cuenta/sesion";
 import { mostrarComparacionConAmigos } from "../online/social";
-import { leerRecord, registrarPartida } from "../perfil/records";
-import { FuentePreguntas } from "../preguntas/fuente";
+import { leerRecord, registrarPartidaLocal } from "../perfil/records";
+import type { Idioma } from "../i18n/textos";
+import { adaptarPreguntasAlIdioma, FuentePreguntas } from "../preguntas/fuente";
 import { esperar } from "../utilidades/aleatorio";
 import { obtenerElemento } from "../utilidades/dom";
 import type { RegistroPregunta } from "./estado";
@@ -75,6 +78,8 @@ const elementos = {
     mejorRacha: obtenerElemento("mejor-racha"),
     recordModo: obtenerElemento("record-modo"),
     botonRevisar: obtenerElemento("boton-revisar", HTMLButtonElement),
+    avisoGuardado: obtenerElemento("aviso-guardado"),
+    avisoInvitado: obtenerElemento("aviso-invitado"),
 };
 
 /** Cambia en cada partida: las esperas de una partida anterior se descartan. */
@@ -84,8 +89,14 @@ let temporizadorReloj: ReturnType<typeof setInterval> | null = null;
 let ultimoTic = 0;
 /** true mientras hay una pregunta en pantalla esperando respuesta. */
 let esperandoRespuesta = false;
+/** true mientras se traduce la pregunta en pantalla (el reloj se para). */
+let traduciendo = false;
 /** Si la última partida batió el récord (para repintar los resultados). */
 let ultimoNuevoRecord = false;
+/** Si la última partida se considera ganada (récord o al menos un 60 % de aciertos). */
+let ultimaVictoria = false;
+/** Porcentaje de aciertos a partir del cual la partida cuenta como ganada. */
+const PORCENTAJE_PARA_GANAR = 0.6;
 
 /** Indica si hay una partida en juego (para avisar antes de abandonarla). */
 export function hayPartidaEnJuego(): boolean {
@@ -106,7 +117,8 @@ export async function iniciarPartida(modo: Modo, tema: Tema): Promise<void> {
     elementos.indicadorCarga.hidden = false;
     mostrarPantalla("carga");
 
-    fuente = new FuentePreguntas(tema, obtenerIdioma(), () => {
+    fuente?.detener();
+    fuente = new FuentePreguntas(tema, obtenerIdioma(), modo.dificultad, () => {
         elementos.mensajeCarga.textContent = texto("traduciendo");
     });
     try {
@@ -130,6 +142,7 @@ export function abandonarPartida(): void {
     detenerReloj();
     esperandoRespuesta = false;
     estadoPartida.enJuego = false;
+    fuente?.detener();
 }
 
 /* ---------- Reloj ---------- */
@@ -165,7 +178,7 @@ function avanzarReloj(): void {
     const ahora = performance.now();
     const transcurrido = (ahora - ultimoTic) / 1000;
     ultimoTic = ahora;
-    if (!esperandoRespuesta) {
+    if (!esperandoRespuesta || traduciendo) {
         return;
     }
     const antes = relojVisible()?.restantes ?? 0;
@@ -174,7 +187,7 @@ function avanzarReloj(): void {
     const despues = relojVisible()?.restantes ?? 0;
 
     if (Math.ceil(despues) < Math.ceil(antes) && Math.ceil(despues) <= SEGUNDOS_DE_AVISO && despues > 0) {
-        reproducirClic(990);
+        reproducirEfecto("tic");
     }
     pintarReloj();
 
@@ -383,11 +396,17 @@ async function responderPregunta(indiceRespuesta: number | null): Promise<void> 
             racha: estadoPartida.racha,
             segundosRestantes: estadoPartida.segundosPregunta,
             segundosPorPregunta: modo.segundosPorPregunta,
+            multiplicador: modo.multiplicador,
         });
         estadoPartida.puntos += registro.puntos;
         mostrarAvisoFlotante(`+${registro.puntos}`);
     } else {
         estadoPartida.racha = 0;
+        if (modo.perderTodoAlFallar && estadoPartida.puntos > 0) {
+            // Todo o nada: el fallo se lleva todos los puntos.
+            mostrarAvisoFlotante(`-${formatearPuntos(estadoPartida.puntos, obtenerIdioma())}`, true);
+            estadoPartida.puntos = 0;
+        }
         if (estadoPartida.vidas !== null) {
             estadoPartida.vidas--;
             elementos.marcadorVidas.classList.remove("pierde-vida");
@@ -435,6 +454,7 @@ export function terminarPartida(): void {
         return;
     }
     generacion++;
+    fuente?.detener();
     detenerReloj();
     esperandoRespuesta = false;
     estadoPartida.enJuego = false;
@@ -443,14 +463,38 @@ export function terminarPartida(): void {
     estadoPartida.historial = estadoPartida.historial.filter((registro) => registro.respondida);
     elementos.tarjetaPregunta.classList.remove("esta-cargando");
 
-    const { modo, puntos } = estadoPartida;
-    ultimoNuevoRecord = registrarPartida(modo.id, puntos).nuevoRecord && puntos > 0;
+    const { modo, puntos, aciertos, historial, tema } = estadoPartida;
+    const total = historial.length;
+    elementos.avisoGuardado.hidden = true;
+    elementos.avisoInvitado.hidden = true;
+
+    if (obtenerPerfil()) {
+        // Con sesión: el récord lo decide el servidor; mientras responde se usa el local.
+        ultimoNuevoRecord = puntos > leerRecord(modo.id).mejor;
+        void guardarPartidaOnline();
+    } else {
+        ultimoNuevoRecord = registrarPartidaLocal(modo.id, puntos).nuevoRecord && puntos > 0;
+        elementos.avisoInvitado.hidden = !hayOnline();
+    }
+    ultimaVictoria = ultimoNuevoRecord || (total > 0 && aciertos / total >= PORCENTAJE_PARA_GANAR);
     pintarResultados();
     mostrarPantalla("resultados");
-    if (ultimoNuevoRecord) {
-        reproducirEfecto("temaElegido");
+    reproducirEfecto(ultimaVictoria ? "victoria" : "derrota");
+
+    /** Guarda la partida en Supabase y repinta con el resultado del servidor. */
+    async function guardarPartidaOnline(): Promise<void> {
+        elementos.avisoGuardado.hidden = false;
+        elementos.avisoGuardado.textContent = texto("guardando");
+        try {
+            const resultado = await registrarPartidaOnline({ modo: modo.id, tema: tema?.id ?? "", puntos, aciertos, total });
+            ultimoNuevoRecord = resultado.nuevoRecord && puntos > 0;
+            pintarResultados();
+            elementos.avisoGuardado.textContent = `+${formatearPuntos(puntos, obtenerIdioma())} ${texto("puntosSumados")} · ${texto("total")}: ${formatearPuntos(resultado.puntosTotales, obtenerIdioma())}`;
+            void mostrarComparacionConAmigos(modo.id);
+        } catch (error) {
+            elementos.avisoGuardado.textContent = mensajeDeErrorCuenta(error);
+        }
     }
-    void mostrarComparacionConAmigos(modo.id, puntos);
 }
 
 /**
@@ -460,6 +504,7 @@ export function terminarPartida(): void {
  */
 function elegirMensajeFinal(aciertos: number, total: number): string {
     if (ultimoNuevoRecord) return texto("mensajeRecord");
+    if (!ultimaVictoria && estadoPartida.modo.vidas !== null && (estadoPartida.vidas ?? 1) <= 0) return texto("mensajeSinVidas");
     const porcentaje = total === 0 ? 0 : aciertos / total;
     if (porcentaje === 1) return texto("mensajePerfecto");
     if (porcentaje >= 0.7) return texto("mensajeBueno");
@@ -483,6 +528,11 @@ export function pintarResultados(): void {
     elementos.mejorRacha.textContent = String(mejorRacha);
     elementos.recordModo.textContent = formatearPuntos(leerRecord(modo.id).mejor, idioma);
     elementos.botonRevisar.hidden = total === 0;
+}
+
+/** Abre el registro desde el aviso de invitado de los resultados. */
+export function conectarAvisoInvitado(): void {
+    elementos.avisoInvitado.querySelector("button")?.addEventListener("click", () => abrirEntrar("registro"));
 }
 
 /** Vuelve a la pantalla de resultados (desde la revisión). */
@@ -511,5 +561,41 @@ export function moverRevision(direccion: 1 | -1): void {
     if (nuevoIndice >= 0 && nuevoIndice < estadoPartida.historial.length) {
         estadoPartida.indiceRevision = nuevoIndice;
         mostrarPreguntaActual();
+    }
+}
+
+/**
+ * Cambia el idioma de la partida en curso: traduce las preguntas ya
+ * salidas (desde su texto original) y las que quedan por salir. El reloj
+ * se para mientras se traduce la pregunta en pantalla.
+ * @param idioma Idioma nuevo.
+ */
+export async function cambiarIdiomaPartida(idioma: Idioma): Promise<void> {
+    if (estadoPartida.historial.length === 0) {
+        return;
+    }
+    const miGeneracion = generacion;
+    traduciendo = true;
+    elementos.tarjetaPregunta.classList.add("esta-cargando");
+    try {
+        const traducidas = await adaptarPreguntasAlIdioma(
+            estadoPartida.historial.map((registro) => registro.pregunta),
+            idioma,
+        );
+        // Si mientras tanto empezó otra partida, no se toca nada.
+        if (miGeneracion !== generacion && estadoPartida.enJuego) return;
+        estadoPartida.historial.forEach((registro, posicion) => {
+            if (traducidas[posicion]) registro.pregunta = traducidas[posicion];
+        });
+    } finally {
+        traduciendo = false;
+        ultimoTic = performance.now();
+        elementos.tarjetaPregunta.classList.remove("esta-cargando");
+    }
+    if (estadoPartida.enJuego || estadoPartida.enRevision) {
+        mostrarPreguntaActual();
+    }
+    if (estadoPartida.enJuego) {
+        void fuente?.cambiarIdioma(idioma);
     }
 }

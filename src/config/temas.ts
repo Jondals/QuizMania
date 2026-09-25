@@ -1,8 +1,9 @@
 /**
  * temas.ts
- * Catálogo de los 20 temas del juego: nombre en cada idioma, icono que sale
+ * Catálogo de los 30 temas del juego: nombre en cada idioma, icono que sale
  * en los rodillos de la tragaperras, color, archivo JSON de respaldo (sin
- * conexión) y de qué API online se sacan sus preguntas.
+ * conexión) y de qué API online se sacan sus preguntas (algunos temas solo
+ * tienen preguntas locales).
  */
 
 import type { Idioma } from "../i18n/textos";
@@ -29,7 +30,8 @@ export interface Tema {
      * null = mezcla de todos los temas (el tema "Al azar").
      */
     archivoLocal: string | null;
-    fuenteOnline: FuenteOnline;
+    /** API online; null = solo preguntas locales. */
+    fuenteOnline: FuenteOnline | null;
 }
 
 /**
@@ -39,9 +41,9 @@ export interface Tema {
  * @param en Nombre en inglés.
  * @param icono Emoji.
  * @param color Color de acento.
- * @param fuenteOnline API online.
+ * @param fuenteOnline API online (null = solo local).
  */
-function tema(id: string, es: string, en: string, icono: string, color: string, fuenteOnline: FuenteOnline): Tema {
+function tema(id: string, es: string, en: string, icono: string, color: string, fuenteOnline: FuenteOnline | null): Tema {
     return { id, nombre: { es, en }, icono, color, archivoLocal: `preguntas/${id}.json`, fuenteOnline };
 }
 
@@ -74,6 +76,16 @@ export const TEMAS: readonly Tema[] = [
     tema("matematicas", "Matemáticas", "Maths", "➗", "#22d3ee", { api: "opentdb", categoria: 19 }),
     tema("anime", "Anime y manga", "Anime & manga", "🍥", "#f472b6", { api: "opentdb", categoria: 31 }),
     tema("comics", "Cómics", "Comics", "🦸", "#f87171", { api: "opentdb", categoria: 29 }),
+    tema("juegos-mesa", "Juegos de mesa", "Board games", "♟️", "#e5e7eb", { api: "opentdb", categoria: 16 }),
+    tema("teatro", "Teatro y musicales", "Theatre & musicals", "🎭", "#e879f9", { api: "opentdb", categoria: 13 }),
+    tema("famosos", "Famosos", "Celebrities", "⭐", "#fde047", { api: "opentdb", categoria: 26 }),
+    tema("tecnologia", "Tecnología", "Gadgets & tech", "📱", "#38bdf8", { api: "opentdb", categoria: 30 }),
+    tema("dibujos", "Dibujos animados", "Cartoons", "🐭", "#fdba74", { api: "opentdb", categoria: 32 }),
+    tema("sociedad", "Sociedad y cultura", "Society & culture", "🌐", "#5eead4", { api: "trivia-api", categoria: "society_and_culture" }),
+    tema("astronomia", "Astronomía", "Astronomy", "🪐", "#818cf8", null),
+    tema("espana", "España", "Spain", "🇪🇸", "#ef4444", null),
+    tema("cuerpo-humano", "Cuerpo humano", "Human body", "🫀", "#fb7185", null),
+    tema("inventos", "Inventos", "Inventions", "💡", "#fcd34d", null),
 ];
 
 /** Archivos locales de todos los temas (para el tema "Al azar" y como último recurso). */

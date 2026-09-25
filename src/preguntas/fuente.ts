@@ -4,16 +4,23 @@
  * partidas de 10 preguntas como para los modos infinitos:
  *   1. Pide lotes online (Open Trivia DB o The Trivia API, en inglés) y va
  *      pidiendo el siguiente antes de que se acaben, para no hacer esperar.
- *   2. Si la API falla, sigue con el JSON local del tema (en español) y, si
- *      se agota, con la mezcla de todos los temas locales.
- *   3. Traduce cada lote al idioma del jugador si hace falta.
+ *   2. Si la API falla o tarda demasiado, sigue con el JSON local del tema
+ *      (en español) y, si se agota, con la mezcla de todos los temas.
+ *   3. Traduce cada lote al idioma del jugador (y lo vuelve a traducir si
+ *      el jugador cambia de idioma a mitad de partida).
  * Nunca repite una pregunta dentro de la misma partida mientras queden nuevas.
+ *
+ * Tiempos límite: Open Trivia DB solo admite una petición cada 5 s y, si se
+ * juega seguido, puede tardar mucho. Por eso la API online y la traducción
+ * tienen un tiempo máximo; si se pasa, se usan las preguntas locales o el
+ * texto sin traducir, y el juego nunca se queda colgado cargando.
  */
 
-import type { Tema } from "../config/temas";
+import type { FuenteOnline, Tema } from "../config/temas";
 import { TODOS_LOS_ARCHIVOS_LOCALES } from "../config/temas";
 import type { Idioma } from "../i18n/textos";
 import { barajar } from "../utilidades/aleatorio";
+import { conLimiteDeTiempo } from "../utilidades/red";
 import type { Pregunta } from "./modelo";
 import { PREGUNTAS_POR_LOTE } from "./modelo";
 import { descargarPreguntasOpenTdb } from "./proveedor-opentdb";
@@ -25,41 +32,79 @@ import { traducirTextos } from "./traductor";
 const UMBRAL_PRECARGA = 4;
 /** Intentos de conseguir un lote con preguntas no vistas. */
 const INTENTOS_POR_LOTE = 3;
+/** Tiempo máximo esperando a la API online en el primer lote (ms). */
+const LIMITE_ONLINE_PRIMER_LOTE = 6000;
+/** Tiempo máximo esperando a la API online en los lotes siguientes (se piden de antemano) (ms). */
+const LIMITE_ONLINE = 15000;
+/** Tiempo máximo de una traducción (ms). */
+const LIMITE_TRADUCCION = 7000;
 
 /**
- * Traduce el enunciado y las respuestas de todas las preguntas.
- * @param preguntas Preguntas originales.
- * @param origen Idioma de las preguntas.
+ * Devuelve la versión sin traducir de una pregunta y su idioma.
+ * @param pregunta Pregunta (traducida o no).
+ */
+function versionOriginal(pregunta: Pregunta): Pregunta & { idioma: Idioma } {
+    const original = pregunta.original ?? pregunta;
+    return { ...original, idioma: original.idioma ?? "es" };
+}
+
+/**
+ * Pone varias preguntas en el idioma pedido. Siempre se traduce desde el
+ * texto original; si el original ya está en ese idioma, se usa tal cual.
+ * Si la traducción falla o tarda demasiado, las preguntas se quedan como estaban.
+ * @param preguntas Preguntas a adaptar.
  * @param destino Idioma del jugador.
  */
-export async function traducirPreguntas(preguntas: Pregunta[], origen: Idioma, destino: Idioma): Promise<Pregunta[]> {
-    if (origen === destino || preguntas.length === 0) {
-        return preguntas;
-    }
-    // Se aplanan todos los textos en una lista para traducirlos de una vez.
-    const textosOriginales = preguntas.flatMap((pregunta) => [
-        pregunta.enunciado,
-        ...pregunta.respuestas.map((respuesta) => respuesta.texto),
-    ]);
-    const textosTraducidos = await traducirTextos(textosOriginales, origen, destino);
+export async function adaptarPreguntasAlIdioma(preguntas: readonly Pregunta[], destino: Idioma): Promise<Pregunta[]> {
+    const resultado = [...preguntas];
+    const pendientes: { posicion: number; original: Pregunta & { idioma: Idioma } }[] = [];
 
-    let posicion = 0;
-    return preguntas.map((pregunta) => ({
-        enunciado: textosTraducidos[posicion++],
-        respuestas: pregunta.respuestas.map((respuesta) => ({ ...respuesta, texto: textosTraducidos[posicion++] })),
-    }));
+    preguntas.forEach((pregunta, posicion) => {
+        if (pregunta.idioma === destino) return;
+        const original = versionOriginal(pregunta);
+        if (original.idioma === destino) {
+            resultado[posicion] = { ...original, original: undefined };
+        } else {
+            pendientes.push({ posicion, original });
+        }
+    });
+
+    // Se agrupan por idioma de origen para traducir cada grupo de una vez.
+    for (const origen of ["es", "en"] as const) {
+        const grupo = pendientes.filter((pendiente) => pendiente.original.idioma === origen);
+        if (grupo.length === 0) continue;
+        const textos = grupo.flatMap(({ original }) => [original.enunciado, ...original.respuestas.map((r) => r.texto)]);
+        let traducidos: string[];
+        try {
+            traducidos = await conLimiteDeTiempo(traducirTextos(textos, origen, destino), LIMITE_TRADUCCION);
+        } catch {
+            continue; // Sin traducción: se quedan en su idioma.
+        }
+        let indice = 0;
+        for (const { posicion, original } of grupo) {
+            resultado[posicion] = {
+                enunciado: traducidos[indice++],
+                respuestas: original.respuestas.map((respuesta) => ({ ...respuesta, texto: traducidos[indice++] })),
+                idioma: destino,
+                original,
+            };
+        }
+    }
+    return resultado;
 }
 
 /**
  * Descarga un lote de preguntas online del tema, según la API que tenga asignada.
- * @param tema Tema de la partida.
+ * @param fuente API y categoría del tema.
+ * @param dificultad Dificultad pedida (null = cualquiera).
  * @returns Preguntas en inglés.
  */
-function descargarLoteOnline(tema: Tema): Promise<Pregunta[]> {
-    const fuente = tema.fuenteOnline;
-    return fuente.api === "opentdb"
-        ? descargarPreguntasOpenTdb(PREGUNTAS_POR_LOTE, fuente.categoria)
-        : descargarPreguntasTriviaApi(PREGUNTAS_POR_LOTE, fuente.categoria);
+async function descargarLoteOnline(fuente: FuenteOnline, dificultad: "hard" | null): Promise<Pregunta[]> {
+    const lote =
+        fuente.api === "opentdb"
+            ? await descargarPreguntasOpenTdb(PREGUNTAS_POR_LOTE, fuente.categoria, dificultad)
+            : await descargarPreguntasTriviaApi(PREGUNTAS_POR_LOTE, fuente.categoria, dificultad);
+    return lote.map((pregunta) => ({ ...pregunta, idioma: "en" }));
 }
 
 /** Preguntas de una partida, en orden y sin repetir. */
@@ -68,25 +113,49 @@ export class FuentePreguntas {
     /** Enunciados originales ya usados (antes de traducir). */
     private readonly vistas = new Set<string>();
     private cargaEnCurso: Promise<void> | null = null;
-    /** true en cuanto la API online falla: el resto de la partida es local. */
+    /** true en cuanto la API online falla o tarda demasiado: el resto de la partida es local. */
     private soloLocal = false;
     /** Preguntas locales pendientes de usar. */
     private reservaLocal: Pregunta[] = [];
     /** Ya se agotó el archivo del tema y se usa la mezcla de todos. */
     private usandoMezcla = false;
-    /** true si alguna pregunta ha salido del respaldo local. */
+    /** true cuando la partida terminó: no se piden más preguntas. */
+    private detenida = false;
+    /** true hasta que llega el primer lote. */
+    private esPrimerLote = true;
+    /** true si alguna pregunta ha salido del respaldo local porque falló la API. */
     origenLocal = false;
 
     /**
-     * @param tema Tema de la partida.
+     * @param tema Tema de la partida ("Al azar" mezcla todos).
      * @param idioma Idioma del jugador.
+     * @param dificultad Dificultad de las preguntas online (null = cualquiera).
      * @param alTraducir Se llama antes de traducir un lote (para avisar en pantalla).
      */
     constructor(
         private readonly tema: Tema,
-        private readonly idioma: Idioma,
+        private idioma: Idioma,
+        private readonly dificultad: "hard" | null = null,
         private readonly alTraducir: () => void = () => {},
-    ) {}
+    ) {
+        // Los temas sin API online solo tienen preguntas locales.
+        this.soloLocal = tema.fuenteOnline === null;
+    }
+
+    /** Deja de pedir preguntas (al terminar o abandonar la partida). */
+    detener(): void {
+        this.detenida = true;
+    }
+
+    /**
+     * Cambia el idioma de las preguntas que quedan por salir.
+     * @param idioma Idioma nuevo.
+     */
+    async cambiarIdioma(idioma: Idioma): Promise<void> {
+        this.idioma = idioma;
+        const pendientes = this.cola.splice(0);
+        this.cola.unshift(...(await adaptarPreguntasAlIdioma(pendientes, idioma)));
+    }
 
     /**
      * Devuelve la siguiente pregunta (esperando a que llegue si hace falta)
@@ -104,7 +173,7 @@ export class FuentePreguntas {
         if (this.cola.length <= UMBRAL_PRECARGA) {
             this.rellenar().catch(() => {});
         }
-        return pregunta;
+        return pregunta.idioma === this.idioma ? pregunta : (await adaptarPreguntasAlIdioma([pregunta], this.idioma))[0];
     }
 
     /** Pide un lote nuevo (si ya hay uno en camino, espera a ese). */
@@ -117,21 +186,22 @@ export class FuentePreguntas {
 
     /** Consigue un lote de preguntas nuevas, lo traduce y lo añade a la cola. */
     private async cargarLote(): Promise<void> {
-        for (let intento = 0; intento < INTENTOS_POR_LOTE; intento++) {
+        for (let intento = 0; intento < INTENTOS_POR_LOTE && !this.detenida; intento++) {
             let lote: Pregunta[] | null = null;
-            let idiomaLote: Idioma = "es";
 
-            if (!this.soloLocal) {
+            if (!this.soloLocal && this.tema.fuenteOnline) {
                 try {
-                    lote = await descargarLoteOnline(this.tema);
-                    idiomaLote = "en";
+                    const limite = this.esPrimerLote ? LIMITE_ONLINE_PRIMER_LOTE : LIMITE_ONLINE;
+                    lote = await conLimiteDeTiempo(descargarLoteOnline(this.tema.fuenteOnline, this.dificultad), limite);
                 } catch {
                     this.soloLocal = true;
                 }
             }
+            if (this.detenida) return;
             if (!lote) {
                 lote = await this.tomarLoteLocal();
-                this.origenLocal = true;
+                // Solo se avisa de "sin conexión" si el tema tenía preguntas online.
+                this.origenLocal ||= this.tema.fuenteOnline !== null;
             }
 
             const nuevas = lote.filter((pregunta) => !this.vistas.has(pregunta.enunciado));
@@ -139,13 +209,18 @@ export class FuentePreguntas {
             if (nuevas.length === 0) {
                 continue;
             }
-            if (idiomaLote !== this.idioma) {
+            if (nuevas.some((pregunta) => pregunta.idioma !== this.idioma)) {
                 this.alTraducir();
             }
-            this.cola.push(...(await traducirPreguntas(nuevas, idiomaLote, this.idioma)));
+            const adaptadas = await adaptarPreguntasAlIdioma(nuevas, this.idioma);
+            if (this.detenida) return;
+            this.cola.push(...adaptadas);
+            this.esPrimerLote = false;
             return;
         }
-        throw new Error("No se consiguieron preguntas nuevas");
+        if (!this.detenida) {
+            throw new Error("No se consiguieron preguntas nuevas");
+        }
     }
 
     /**
@@ -173,6 +248,6 @@ export class FuentePreguntas {
                 this.usandoMezcla = true;
             }
         }
-        return this.reservaLocal.splice(0, PREGUNTAS_POR_LOTE);
+        return this.reservaLocal.splice(0, PREGUNTAS_POR_LOTE).map((pregunta) => ({ ...pregunta, idioma: "es" }));
     }
 }

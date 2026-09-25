@@ -5,6 +5,8 @@
  *   - Racha: +20 por cada acierto seguido a partir del segundo (máximo +100).
  *   - Rapidez (solo en modos con tiempo por pregunta): hasta +50 según el
  *     tiempo que sobre.
+ *   - Todo se multiplica por el multiplicador del modo (×2 en Experto).
+ * Máximo por acierto: 250 × 2 = 500 (lo comprueba también la base de datos).
  * Los fallos no quitan puntos (pero cortan la racha).
  */
 
@@ -21,18 +23,25 @@ export interface DatosAcierto {
     segundosRestantes?: number;
     /** Segundos por pregunta del modo (si los hay). */
     segundosPorPregunta?: number | null;
+    /** Multiplicador del modo (1 por defecto). */
+    multiplicador?: number;
 }
 
 /**
  * Calcula los puntos de un acierto.
  * @param datos Racha y tiempo del acierto.
  */
-export function calcularPuntosAcierto({ racha, segundosRestantes = 0, segundosPorPregunta = null }: DatosAcierto): number {
+export function calcularPuntosAcierto({
+    racha,
+    segundosRestantes = 0,
+    segundosPorPregunta = null,
+    multiplicador = 1,
+}: DatosAcierto): number {
     const bonusRacha = Math.min(Math.max(racha - 1, 0) * PUNTOS_POR_RACHA, BONUS_RACHA_MAXIMO);
     const bonusRapidez = segundosPorPregunta
         ? Math.round(BONUS_RAPIDEZ_MAXIMO * Math.min(Math.max(segundosRestantes / segundosPorPregunta, 0), 1))
         : 0;
-    return PUNTOS_BASE + bonusRacha + bonusRapidez;
+    return (PUNTOS_BASE + bonusRacha + bonusRapidez) * multiplicador;
 }
 
 /**

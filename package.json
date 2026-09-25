@@ -1,7 +1,7 @@
 {
   "name": "quizmania",
   "version": "2.0.0",
-  "description": "Juego de trivia con tragaperras: 20 temas, 5 modos de juego, amigos y ranking.",
+  "description": "Juego de trivia con tragaperras: 30 temas, 10 modos, cuentas con Supabase, amigos y ranking.",
   "scripts": {
     "build": "tsc && node scripts/build.mjs",
     "typecheck": "tsc",
@@ -25,5 +25,8 @@
   "type": "module",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2"
   }
 }

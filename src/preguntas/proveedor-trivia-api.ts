@@ -39,14 +39,22 @@ function claveIdsVistos(categoria: string): string {
  * el historial de la categoría y se empieza de nuevo.
  * @param cantidad Número de preguntas.
  * @param categoria Categoría de The Trivia API (p. ej. "food_and_drink").
+ * @param dificultad "hard" para pedir solo preguntas difíciles; null = cualquiera.
  * @returns Preguntas en inglés con las respuestas barajadas.
  */
-export async function descargarPreguntasTriviaApi(cantidad: number, categoria: string): Promise<Pregunta[]> {
+export async function descargarPreguntasTriviaApi(
+    cantidad: number,
+    categoria: string,
+    dificultad: "hard" | null = null,
+): Promise<Pregunta[]> {
     const idsVistos = new Set(leerDatoGuardado<string[]>(claveIdsVistos(categoria), []));
     const elegidas = new Map<string, PreguntaTriviaApi>();
 
     for (let intento = 1; intento <= MAXIMO_INTENTOS && elegidas.size < cantidad; intento++) {
         const parametros = new URLSearchParams({ categories: categoria, limit: String(PREGUNTAS_POR_PETICION) });
+        if (dificultad) {
+            parametros.set("difficulties", dificultad);
+        }
         const lote = await descargarJson<PreguntaTriviaApi[]>(`${URL_API}?${parametros}`);
         for (const pregunta of lote) {
             if (elegidas.size < cantidad && !idsVistos.has(pregunta.id)) {

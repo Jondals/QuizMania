@@ -2,19 +2,63 @@
  * build.mjs
  * Compila QuizMania para producción (lo ejecuta Vercel con `npm run build`):
  *   1. Borra dist/.
- *   2. Copia public/ (HTML, imágenes, sonidos, preguntas) a dist/.
+ *   2. Copia public/ (HTML, imágenes, preguntas) a dist/.
  *   3. Empaqueta y minifica src/main.ts con esbuild en dist/assets/main-[hash].js
  *      (el hash cambia con cada versión, así se puede cachear para siempre).
  *   4. Minifica style.css y lo incrusta en el HTML (una petición menos).
  *   5. Enlaza el JS con hash desde el HTML.
  * La comprobación de tipos la hace `tsc` antes de este script.
+ *
+ * Supabase se configura con las variables de entorno SUPABASE_URL y
+ * SUPABASE_ANON_KEY (o sus equivalentes NEXT_PUBLIC_… que muestra Supabase).
+ * En Vercel: Settings → Environment Variables; en local, un archivo .env o
+ * .env.local. Sin ellas el juego funciona igual, pero sin cuentas.
  */
 
 import { build, transform } from "esbuild";
-import { cpSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
 const CARPETA_SALIDA = "dist";
+
+/**
+ * Carga las variables de un archivo de entorno (si existe) sin pisar las del sistema.
+ * @param archivo Ruta del archivo (.env o .env.local).
+ */
+function cargarArchivoEnv(archivo) {
+    if (!existsSync(archivo)) {
+        return;
+    }
+    for (const linea of readFileSync(archivo, "utf8").split(/\r?\n/)) {
+        const coincidencia = linea.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+        if (coincidencia && process.env[coincidencia[1]] === undefined) {
+            process.env[coincidencia[1]] = coincidencia[2].replace(/^["']|["']$/g, "");
+        }
+    }
+}
+
+/**
+ * Devuelve la primera variable de entorno definida de la lista.
+ * Se aceptan también los nombres que muestra Supabase para Next.js
+ * (NEXT_PUBLIC_…), así se pueden copiar tal cual.
+ * @param nombres Nombres posibles, por orden de preferencia.
+ */
+function leerVariable(...nombres) {
+    for (const nombre of nombres) {
+        if (process.env[nombre]) return process.env[nombre].trim();
+    }
+    return "";
+}
+
+cargarArchivoEnv(".env.local");
+cargarArchivoEnv(".env");
+const SUPABASE_URL = leerVariable("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL");
+const SUPABASE_ANON_KEY = leerVariable(
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+);
 
 /** Borra la salida anterior y copia los archivos estáticos. */
 function copiarArchivosEstaticos() {
@@ -37,6 +81,10 @@ async function empaquetarJavaScript() {
         entryNames: "[name]-[hash]",
         metafile: true,
         legalComments: "none",
+        define: {
+            __SUPABASE_URL__: JSON.stringify(SUPABASE_URL),
+            __SUPABASE_ANON_KEY__: JSON.stringify(SUPABASE_ANON_KEY),
+        },
     });
     const archivoGenerado = Object.keys(resultado.metafile.outputs).find((ruta) => ruta.endsWith(".js"));
     return archivoGenerado.replace(`${CARPETA_SALIDA}/`, "");
@@ -75,3 +123,6 @@ copiarArchivosEstaticos();
 const rutaJavaScript = await empaquetarJavaScript();
 generarHtml(rutaJavaScript, await minificarCss());
 console.log(`QuizMania compilado en ${CARPETA_SALIDA}/ (${rutaJavaScript})`);
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.warn("Aviso: faltan SUPABASE_URL o SUPABASE_ANON_KEY; el juego se compila sin cuentas ni ranking.");
+}

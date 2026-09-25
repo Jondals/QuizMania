@@ -46,3 +46,25 @@ async function descargarConTiempoLimite(url: string, tiempoLimite: number): Prom
         clearTimeout(temporizador);
     }
 }
+
+/**
+ * Espera una promesa como mucho el tiempo indicado; si tarda más, falla.
+ * (La promesa original sigue su curso, pero ya no se espera.)
+ * @param promesa Promesa a esperar.
+ * @param milisegundos Tiempo máximo.
+ */
+export function conLimiteDeTiempo<T>(promesa: Promise<T>, milisegundos: number): Promise<T> {
+    return new Promise((resolver, rechazar) => {
+        const temporizador = setTimeout(() => rechazar(new Error("Tiempo agotado")), milisegundos);
+        promesa.then(
+            (valor) => {
+                clearTimeout(temporizador);
+                resolver(valor);
+            },
+            (error) => {
+                clearTimeout(temporizador);
+                rechazar(error);
+            },
+        );
+    });
+}

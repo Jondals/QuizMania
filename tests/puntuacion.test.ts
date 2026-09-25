@@ -31,3 +31,9 @@ test("formatea los miles según el idioma", () => {
     assert.equal(formatearPuntos(1234, "es"), "1.234");
     assert.equal(formatearPuntos(1234567, "en"), "1,234,567");
 });
+
+test("el multiplicador del modo Experto duplica los puntos", () => {
+    assert.equal(calcularPuntosAcierto({ racha: 1, multiplicador: 2 }), 200);
+    // Máximo posible por acierto: lo que acepta la base de datos (500).
+    assert.equal(calcularPuntosAcierto({ racha: 99, segundosRestantes: 20, segundosPorPregunta: 20, multiplicador: 2 }), 500);
+});

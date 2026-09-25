@@ -72,9 +72,14 @@ function decodificar(textoCodificado: string): string {
  * Descarga preguntas nuevas (nunca vistas con este token) de Open Trivia DB.
  * @param cantidad Número de preguntas.
  * @param categoria Id de categoría de Open Trivia DB; sin categoría = cualquiera.
+ * @param dificultad "hard" para pedir solo preguntas difíciles; null = cualquiera.
  * @returns Preguntas en inglés con las respuestas barajadas.
  */
-export async function descargarPreguntasOpenTdb(cantidad: number, categoria?: number): Promise<Pregunta[]> {
+export async function descargarPreguntasOpenTdb(
+    cantidad: number,
+    categoria?: number,
+    dificultad: "hard" | null = null,
+): Promise<Pregunta[]> {
     let token = leerDatoGuardado<string | null>(CLAVE_TOKEN, null) ?? (await pedirTokenNuevo());
 
     for (let intento = 1; intento <= MAXIMO_INTENTOS; intento++) {
@@ -86,6 +91,9 @@ export async function descargarPreguntasOpenTdb(cantidad: number, categoria?: nu
         });
         if (categoria !== undefined) {
             parametros.set("category", String(categoria));
+        }
+        if (dificultad) {
+            parametros.set("difficulty", dificultad);
         }
 
         const respuesta = await descargarJson<RespuestaPreguntasOpenTdb>(`${URL_API}/api.php?${parametros}`);

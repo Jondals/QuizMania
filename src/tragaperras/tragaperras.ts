@@ -9,7 +9,7 @@
  * terminando en el ganador y se desplaza hacia arriba con una transición CSS.
  */
 
-import { reproducirClic } from "../audio/efectos";
+import { reproducirParadaRodillo } from "../audio/efectos";
 import type { Tema } from "../config/temas";
 import { TEMAS } from "../config/temas";
 import { elegirAlAzar } from "../utilidades/aleatorio";
@@ -85,7 +85,7 @@ function girarRodillo(tira: HTMLElement, iconoGanador: string, posicion: number)
 
     return new Promise((resolver) => {
         setTimeout(() => {
-            reproducirClic(260 + posicion * 90);
+            reproducirParadaRodillo(420 + posicion * 110);
             tira.parentElement?.classList.add("ventana--parada");
             resolver();
         }, duracion);
@@ -98,16 +98,95 @@ function girarRodillo(tira: HTMLElement, iconoGanador: string, posicion: number)
  * @param temaGanador Tema en el que deben pararse todos.
  */
 export async function girarRodillos(tiras: readonly HTMLElement[], temaGanador: Tema): Promise<void> {
+    // La clase "girando" acelera las luces y difumina los rodillos en movimiento.
+    const maquina = tiras[0]?.closest(".maquina");
+    maquina?.classList.remove("hay-premio");
+    maquina?.classList.add("girando");
     tiras.forEach((tira) => tira.parentElement?.classList.remove("ventana--parada"));
     await Promise.all(tiras.map((tira, posicion) => girarRodillo(tira, temaGanador.icono, posicion)));
+    maquina?.classList.remove("girando");
+    maquina?.classList.add("hay-premio");
+}
+
+/** Recorrido de la palanca al tirar de ella (px); coincide con el CSS (--recorrido-palanca). */
+const RECORRIDO_PALANCA = 120;
+/** Fracción del recorrido a partir de la cual cuenta como tirada. */
+const UMBRAL_TIRON = 0.75;
+/** Tiempo que la palanca se queda abajo antes de volver (ms). */
+const TIEMPO_ABAJO = 180;
+
+/**
+ * Pone la palanca en una posición.
+ * @param palanca Botón de la palanca.
+ * @param tiron 0 = arriba, 1 = abajo del todo.
+ */
+function moverPalanca(palanca: HTMLElement, tiron: number): void {
+    palanca.style.setProperty("--tiron", String(Math.min(Math.max(tiron, 0), 1)));
 }
 
 /**
- * Anima la palanca bajando y volviendo a subir.
+ * Hace que la palanca funcione como en una tragaperras de verdad:
+ *   - Arrastrándola hacia abajo (ratón o dedo); si baja lo suficiente, se tira.
+ *   - Con un clic o un toque, baja y sube sola.
+ *   - Con el teclado (Intro o Espacio), igual que con un clic.
  * @param palanca Botón de la palanca.
+ * @param alTirar Se llama cuando se tira de la palanca.
+ * @returns Función que tira de la palanca con su animación (para la tecla Espacio).
  */
-export function animarPalanca(palanca: HTMLElement): void {
-    palanca.classList.remove("palanca--tirada");
-    void palanca.offsetWidth; // Reinicia la animación si se pulsa muy seguido.
-    palanca.classList.add("palanca--tirada");
+export function conectarPalanca(palanca: HTMLButtonElement, alTirar: () => void): () => void {
+    let inicioY: number | null = null;
+    let tiron = 0;
+    let yaTirada = false;
+
+    /** Baja la palanca del todo, avisa y la devuelve arriba. */
+    const tirar = () => {
+        if (palanca.disabled) return;
+        yaTirada = true;
+        palanca.classList.remove("arrastrando");
+        moverPalanca(palanca, 1);
+        reproducirParadaRodillo(260);
+        alTirar();
+        setTimeout(() => moverPalanca(palanca, 0), TIEMPO_ABAJO);
+    };
+
+    palanca.addEventListener("pointerdown", (evento) => {
+        if (palanca.disabled || evento.button !== 0) return;
+        inicioY = evento.clientY;
+        tiron = 0;
+        yaTirada = false;
+        try {
+            palanca.setPointerCapture(evento.pointerId);
+        } catch {
+            // Algunos navegadores no dejan capturar el puntero: se arrastra igual.
+        }
+        palanca.classList.add("arrastrando");
+    });
+    palanca.addEventListener("pointermove", (evento) => {
+        if (inicioY === null || yaTirada) return;
+        tiron = (evento.clientY - inicioY) / RECORRIDO_PALANCA;
+        moverPalanca(palanca, tiron);
+        if (tiron >= UMBRAL_TIRON) tirar();
+    });
+    const soltar = () => {
+        if (inicioY === null) return;
+        inicioY = null;
+        palanca.classList.remove("arrastrando");
+        // Un toque sin arrastrar cuenta como tirar; un arrastre corto no.
+        if (!yaTirada && tiron < 0.05) {
+            tirar();
+        } else if (!yaTirada) {
+            moverPalanca(palanca, 0);
+        }
+    };
+    palanca.addEventListener("pointerup", soltar);
+    palanca.addEventListener("pointercancel", () => {
+        inicioY = null;
+        palanca.classList.remove("arrastrando");
+        moverPalanca(palanca, 0);
+    });
+    // Teclado: Intro y Espacio generan un "click" sin puntero (detail = 0).
+    palanca.addEventListener("click", (evento) => {
+        if (evento.detail === 0) tirar();
+    });
+    return tirar;
 }
