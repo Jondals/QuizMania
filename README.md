@@ -19,9 +19,10 @@ Juego de trivia con tragaperras: **elige un modo, tira de la palanca**, los rodi
 - **Cuentas (Supabase)**: solo usuario y contraseña, sin correo. Con sesión, cada partida suma sus puntos a tu total y actualiza tu récord del modo.
 - **Borrar cuenta** desde el perfil: se borran para siempre el usuario, la foto, los puntos, los récords y los amigos.
 - **Perfil**: usuario para entrar (no se cambia) y **nombre visible** que se puede cambiar cuando quieras; en el ranking salen los dos.
+- **Código de amigo**: 6 caracteres (sin I, O, 0 ni 1) que la base de datos te asigna al crear la cuenta. Nunca es igual que tu usuario ni que tu nombre, y si un jugador antiguo se quedó sin él se le rehace al entrar.
 - **Foto de perfil**: se sube cualquier imagen; el juego la recorta en cuadrado y la reduce a 256 px antes de subirla.
-- **Ranking**: puntos totales o récord de cada modo, **global** (los 50 mejores, visible sin cuenta) o **entre amigos**.
-- **Amigos**: se añaden por nombre de usuario y la amistad es mutua. El enlace `…/?amigo=usuario` añade a ese amigo al abrirlo.
+- **Ranking**: puntos totales o récord de cada modo, **global** (los 50 mejores, visible sin cuenta) o **entre amigos**. Los tres primeros salen en un podio y debajo va la lista con todos, cada uno con sus **partidas, aciertos y % de precisión**.
+- **Amigos**: se gestionan desde el **menú de tu cuenta** (la foto de la cabecera), no desde el ranking: tu código de amigo para compartir, el formulario para añadir por código o usuario y la lista con el botón de quitar. La amistad es mutua. El enlace `…/?amigo=CÓDIGO` añade a ese amigo al abrirlo.
 - **Sonidos propios** sintetizados en el navegador (sin archivos de audio): botones, acierto, fallo, victoria, derrota, giro de los rodillos y aviso de tiempo.
 - **Reproductor de música** (Ajustes o el botón ♪ de la cabecera): anterior / pausa / siguiente, volumen de música y de sonidos, y una playlist que se reordena arrastrando. Se pueden **subir canciones** (se guardan en el navegador), pegar un **vídeo o una lista de YouTube** (solo se oye el audio; el reproductor oficial va oculto) o un enlace de **Spotify** (su widget oficial; sin sesión en Spotify solo suenan 30 s por canción).
 - **Pantalla de bienvenida** con los rodillos parándose en 7-7-7 (se salta con cualquier tecla o clic).
@@ -39,7 +40,7 @@ Juego de trivia con tragaperras: **elige un modo, tira de la palanca**, los rodi
 ## Configurar Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. **SQL Editor → New query** → pega el contenido entero de [`supabase/schema.sql`](supabase/schema.sql) → **Run**. Crea las tablas, las funciones, la seguridad (RLS) y el bucket `avatares` para las fotos. Se puede volver a ejecutar sin perder datos (hazlo cada vez que cambie el archivo).
+2. **SQL Editor → New query** → pega el contenido entero de [`supabase/schema.sql`](supabase/schema.sql) → **Run**. Crea las tablas, las funciones, la seguridad (RLS) y el bucket `avatares` para las fotos. Se puede volver a ejecutar sin perder datos (hazlo cada vez que cambie el archivo): al repetirlo también **repara los códigos de amigo** que sean el usuario o el nombre de algún jugador.
 3. **Authentication → Sign In / Providers → Email** → desactiva **Confirm email** y guarda. El login usa un correo interno `<usuario>@quizmania.app` que nunca recibe nada; el SQL ya confirma las cuentas solo, pero con la opción activada Supabase intenta enviar un correo en cada registro y su servidor gratuito solo permite unos pocos por hora.
 4. Copia la **URL** y la clave **publishable** (Connect → Framework, o Project Settings → API Keys).
 

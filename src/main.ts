@@ -11,8 +11,8 @@
  * Al abrir la página se ve la pantalla de bienvenida (splash) unos segundos.
  */
 
-import { iniciarAjustes } from "./ajustes/ajustes";
-import { iniciarInterfazMusica } from "./audio/interfaz-musica";
+import { initSettings } from "./ajustes/ajustes";
+import { initMusicInterface } from "./audio/interfaz-musica";
 import { detenerEfecto, reproducirEfecto } from "./audio/efectos";
 import { TEMAS } from "./config/temas";
 import { iniciarInterfazCuenta } from "./cuenta/interfaz-cuenta";
@@ -244,9 +244,9 @@ async function iniciarJuego(): Promise<void> {
     prepararSplash();
     bloquearClicDerecho();
     repintarAlCambiarIdioma();
-    iniciarAjustes();
-    iniciarInterfazMusica();
-    iniciarInterfazCuenta(() => void mostrarRanking());
+    initSettings();
+    initMusicInterface();
+    iniciarInterfazCuenta();
     iniciarSelectorModo();
     prepararRodillos(tirasRodillos);
     activarSonidoDeBotones();
@@ -255,7 +255,7 @@ async function iniciarJuego(): Promise<void> {
     document.addEventListener(EVENTO_SESION, pintarSelectorModo);
 
     await recuperarSesion().catch(() => {});
-    iniciarSocial(() => void mostrarRanking());
+    iniciarSocial();
 }
 
 void iniciarJuego();

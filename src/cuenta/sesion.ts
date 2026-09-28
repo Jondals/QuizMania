@@ -146,6 +146,45 @@ function traducirError(error: { message?: string; code?: string } | null): Error
     return new ErrorCuenta(codigoPropio ?? "desconocido");
 }
 
+/**
+ * Alfabeto seguro para códigos de amigo (sin I, O, 0, 1 para evitar confusiones).
+ * Coincide con el alfabeto de generar_codigo_amigo() en la BD.
+ */
+const ALFABETO_CODIGO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const LONGITUD_CODIGO = 6;
+
+/** Genera un código aleatorio local como respaldo si la BD no puede. */
+export function generarCodigoLocal(): string {
+    let codigo = "";
+    for (let i = 0; i < LONGITUD_CODIGO; i++) {
+        codigo += ALFABETO_CODIGO[Math.floor(Math.random() * ALFABETO_CODIGO.length)];
+    }
+    return codigo;
+}
+
+/**
+ * Pide a la base de datos el código de amigo y lo devuelve.
+ * Los perfiles creados antes de que existiera la columna se quedan sin código;
+ * la función `asegurar_codigo_amigo` se lo crea ahí mismo (siempre distinto de
+ * su usuario y de su nombre). Si esa función todavía no existe en la base de
+ * datos, se genera un código local para que la interfaz siempre tenga un
+ * identificador distinto del usuario.
+ * @param db Cliente de Supabase.
+ * @param codigo Código que ya venía en el perfil, si lo había.
+ */
+async function completarCodigoAmigo(
+    db: ReturnType<typeof cliente>,
+    codigo: string | null,
+): Promise<string | null> {
+    if (codigo) return codigo;
+    // Se intenta obtener o crear el código desde la BD.
+    const { data, error } = await db.rpc("asegurar_codigo_amigo");
+    if (!error && data) return data as string;
+    // Si la función RPC no existe (schema.sql no aplicado) o falla la red,
+    // se genera un código local para no usar el usuario como código.
+    return generarCodigoLocal();
+}
+
 /** Descarga el perfil y los récords del jugador con sesión. */
 async function cargarPerfil(id: string): Promise<void> {
     const db = cliente();
@@ -166,7 +205,7 @@ async function cargarPerfil(id: string): Promise<void> {
         id: datos.id,
         usuario: datos.usuario,
         nombre: datos.nombre ?? null,
-        codigo: datos.codigo ?? null,
+        codigo: await completarCodigoAmigo(db, datos.codigo ?? null),
         avatarVersion: datos.avatar_version,
         puntosTotales: Number(datos.puntos_totales),
         partidas: datos.partidas,

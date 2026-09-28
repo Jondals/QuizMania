@@ -1,11 +1,10 @@
 /**
- * interfaz-musica.ts
- * Reproductor de música de Ajustes:
- *   - Anterior / reproducir-pausar / siguiente y volumen de la música.
- *   - Playlist: se toca una canción para ponerla, se arrastra por el asa
- *     (⠿) para reordenarla y se quita con ✕.
- *   - "Subir canciones" (archivos de audio) y un campo para pegar enlaces
- *     de YouTube (vídeo o lista) o Spotify.
+ * music-interface.ts (renamed from interfaz-musica.ts)
+ * Music player in the Settings dialog:
+ *   - Previous / play-pause / next buttons and music volume slider.
+ *   - Playlist: click a song to play, drag by the handle (⠿) to reorder,
+ *     remove with ✕.
+ *   - "Upload songs" (audio files) and a field for YouTube or Spotify links.
  */
 
 import type { ClaveTexto } from "../i18n/textos";
@@ -235,8 +234,8 @@ function claveDeError(error: unknown): ClaveTexto {
     return "errorOnline";
 }
 
-/** Conecta el reproductor de Ajustes. */
-export function iniciarInterfazMusica(): void {
+/** Connects the music player controls in the Settings dialog. */
+export function initMusicInterface(): void {
     elementos.botonPlay.dataset.sinClic = "";
     elementos.botonPlay.addEventListener("click", () => void alternarReproduccion());
     elementos.botonAnterior.addEventListener("click", () => void anterior());

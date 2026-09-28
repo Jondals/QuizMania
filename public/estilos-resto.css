@@ -629,8 +629,7 @@
     align-items: center;
 }
 
-.bloque-cabecera h3,
-.titulo-panel {
+.bloque-cabecera h3 {
     font-size: 1rem;
     font-weight: 900;
 }
@@ -659,7 +658,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 22px;
+    gap: 30px;
 }
 
 .ranking-cabecera {
@@ -667,7 +666,7 @@
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 14px;
+    gap: 18px;
     width: min(100%, 1040px);
 }
 
@@ -680,15 +679,16 @@
 .ranking-controles {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
 }
 
 .selector-ambito {
     display: flex;
     padding: 4px;
-    border: 1px solid var(--borde);
+    border: 1px solid rgb(255 46 126 / 20%);
     border-radius: var(--radio);
-    background: rgb(18 18 28 / 80%);
+    background: var(--superficie);
 }
 
 .boton-ambito {
@@ -704,6 +704,11 @@
     transition: background-color 0.25s var(--curva-suave), color 0.2s;
 }
 
+.boton-ambito:hover {
+    color: var(--texto);
+    background: var(--superficie-hover);
+}
+
 .boton-ambito[aria-pressed="true"] {
     background: var(--superficie-hover);
     color: var(--texto);
@@ -714,20 +719,27 @@
 .selector-flechas {
     display: flex;
     align-items: stretch;
-    border: 1px solid var(--borde);
+    border: 1px solid rgb(255 46 126 / 20%);
     border-radius: var(--radio);
-    background: rgb(18 18 28 / 80%);
+    background: var(--superficie);
+    transition: border-color 0.25s var(--curva-suave);
+}
+
+.selector-flechas:focus-within {
+    border-color: rgb(255 46 126 / 45%);
 }
 
 .flecha-selector {
     display: grid;
     place-items: center;
-    width: 42px;
+    width: 40px;
+    min-height: 46px;
     padding: 0;
     border: 0;
     background: transparent;
     color: var(--texto-suave);
     transition: color 0.2s, background-color 0.2s;
+    cursor: var(--cursor-mano);
 }
 
 .flecha-selector:hover {
@@ -736,52 +748,123 @@
 }
 
 .flecha-selector:first-child {
-    border-right: 1px solid var(--borde);
+    border-right: 1px solid rgb(255 46 126 / 12%);
     border-radius: var(--radio) 0 0 var(--radio);
 }
 
 .flecha-selector:last-child {
-    border-left: 1px solid var(--borde);
+    border-left: 1px solid rgb(255 46 126 / 12%);
     border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.selector-lista {
+    display: flex;
+    align-items: center;
+    min-width: 200px;
 }
 
 .selector-lista select {
     width: 100%;
-    min-width: 220px;
-    height: 100%;
-    min-height: 46px;
-    padding: 0 14px;
+    min-width: 0;
+    height: 46px;
+    padding: 0 6px 0 14px;
     border: 0;
     background: transparent;
     color: var(--texto);
     font: inherit;
+    font-size: 0.9rem;
     font-weight: 800;
-    text-align: center;
+    line-height: 46px;
     appearance: none;
+    cursor: var(--cursor-mano);
+    transition: color 0.2s;
+}
+
+.selector-lista select:hover {
+    color: var(--turquesa);
+}
+
+.selector-lista::after {
+    content: "▾";
+    display: flex;
+    align-items: center;
+    height: 46px;
+    padding-right: 14px;
+    color: var(--texto-suave);
+    font-size: 0.7rem;
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.selector-lista:has(select:hover)::after {
+    color: var(--turquesa);
 }
 
 .selector-lista select option {
     background: var(--superficie);
+    color: var(--texto);
 }
 
-.rejilla-social {
-    display: grid;
-    align-items: start;
-    gap: 22px;
-    width: min(100%, 1040px);
-}
-
-@media (min-width: 900px) {
-    .rejilla-social {
-        grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
-    }
-}
-
+/*
+ * La pantalla de ranking es una sola columna ancha: el podio arriba y debajo
+ * la lista completa con los números de cada jugador. El ancho máximo vive en
+ * .panel-ranking, que hace de tarjeta con el mismo borde rojizo del menú.
+ */
 .panel-ranking {
+    /* Plantilla de columnas compartida por la cabecera y las filas, para que
+       las cifras queden exactamente encima de su columna */
+    --columnas-ranking: 2.4rem 34px minmax(0, 1fr) 5.6rem 3.7rem 3.7rem 3.4rem;
+    --hueco-fila: 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 14px;
+    width: min(100%, 860px);
     min-width: 0;
+    margin-inline: auto;
+    padding: clamp(16px, 3vw, 24px);
+    border: 1px solid rgb(255 46 126 / 22%);
+    border-radius: var(--radio);
+    background:
+        linear-gradient(180deg, rgb(255 46 126 / 8%), transparent 220px),
+        var(--superficie);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
+}
+
+/* Tus números, en una franja encima de la clasificación */
+.estadisticas-ranking {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 22px;
+    margin: 0;
+    padding: 12px clamp(12px, 3vw, 18px);
+    border: 1px solid rgb(255 46 126 / 20%);
+    border-radius: var(--radio);
+    background: rgb(255 46 126 / 7%);
+}
+
+.estadisticas-ranking div {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+}
+
+.estadisticas-ranking div:first-child {
+    flex: 1 0 100%;
+}
+
+.estadisticas-ranking dt {
+    color: var(--texto-suave);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.estadisticas-ranking dd {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
 }
 
 /* Podio de los tres primeros (orden 2 · 1 · 3) */
@@ -789,8 +872,8 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: end;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 14px;
+    margin-bottom: 2px;
 }
 
 .podio:empty {
@@ -854,6 +937,33 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Partidas · aciertos · % de cadauno del podio */
+.podio-numeros {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 6px;
+    margin-top: 4px;
+}
+
+.podio-numero {
+    padding: 2px 7px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 30%);
+    color: var(--texto-suave);
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.podio-numero--fuerte {
+    border-color: rgb(25 245 200 / 35%);
+    background: rgb(25 245 200 / 12%);
+    color: var(--turquesa);
+}
+
 .podio-pedestal {
     display: grid;
     place-items: center;
@@ -883,8 +993,7 @@
     color: #e2995a;
 }
 
-.lista-ranking,
-.lista-amigos {
+.lista-ranking {
     display: flex;
     flex-direction: column;
     margin: 0;
@@ -892,30 +1001,66 @@
     list-style: none;
 }
 
+/* La lista grande (pantalla de ranking) lleva las filas más altas */
+.lista-ranking--grande .fila-ranking {
+    min-height: 68px;
+    padding: 12px 14px;
+}
+
+/*
+ * Cabecera de la lista: los mismos nombres de columna que la rejilla de las
+ * filas (--columnas-ranking), para que cada cifra caiga justo debajo de su
+ * título. El primer rótulo abarca posición + avatar + nombre.
+ */
+.lista-cabecera {
+    display: grid;
+    grid-template-columns: var(--columnas-ranking);
+    gap: var(--hueco-fila);
+    padding: 0 14px 8px;
+    border-bottom: 1px solid var(--borde);
+    color: var(--texto-suave);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lista-cabecera span:first-child {
+    grid-column: 1 / 4;
+}
+
+.lista-cabecera span:not(:first-child) {
+    text-align: right;
+}
+
 /* Filas separadas por líneas finas; entran una detrás de otra */
-.fila-ranking,
-.fila-amigo {
-    display: flex;
+.fila-ranking {
+    display: grid;
+    grid-template-columns: var(--columnas-ranking, auto auto minmax(0, 1fr) auto);
     align-items: center;
-    gap: 14px;
-    min-height: 56px;
-    padding: 8px 10px;
+    gap: var(--hueco-fila, 16px);
+    min-height: 58px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--borde-suave);
     transition: background-color 0.2s, opacity 0.25s, transform 0.25s;
 }
 
-.fila-ranking {
+/*
+ * Entrada escalonada: la clase .entrando la pone el TS cada vez que se
+ * repinta la lista (no solo la primera vez), así las filas entran siempre
+ * con el mismo efecto suave. El retardo se corta a 400 ms para que las
+ * listas largas no tarden una eternidad en aparecer.
+ */
+.lista-ranking.entrando .fila-ranking {
     animation: aparecer 0.4s var(--curva-suave) both;
-    animation-delay: calc(var(--orden, 0) * 35ms);
+    animation-delay: min(calc(var(--orden, 0) * 32ms), 400ms);
 }
 
-.fila-ranking:hover,
-.fila-amigo:hover {
+.fila-ranking:hover {
     background: rgb(255 255 255 / 3%);
 }
 
-.fila-ranking:last-child,
-.fila-amigo:last-child {
+.fila-ranking:last-child {
     border-bottom: 0;
 }
 
@@ -928,13 +1073,8 @@
     color: var(--turquesa);
 }
 
-.fila-amigo.saliendo {
-    opacity: 0;
-    transform: translateX(16px);
-}
-
 .fila-posicion {
-    min-width: 2em;
+    min-width: 0;
     color: var(--texto-suave);
     font-weight: 900;
     text-align: center;
@@ -954,7 +1094,6 @@
 }
 
 .fila-nombre {
-    flex: 1;
     min-width: 0;
     overflow: hidden;
     font-weight: 700;
@@ -965,33 +1104,39 @@
 .fila-puntos {
     color: var(--amarillo);
     font-weight: 900;
+    text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
-.fila-puntos--suave {
+/* Partidas, aciertos y %: columnas estrechas y a la derecha.
+   El envoltorio no pinta nada: sus hijos son los que caen en cada columna
+   (así la cabecera y las filas comparten la misma rejilla). */
+.fila-stats {
+    display: contents;
+}
+
+.fila-dato {
     color: var(--texto-suave);
     font-size: 0.88rem;
+    font-weight: 800;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
-.boton-quitar {
-    opacity: 0.5;
-    transition: opacity 0.2s;
-}
-
-.fila-amigo:hover .boton-quitar,
-.boton-quitar:focus-visible {
-    opacity: 1;
+.fila-dato--fuerte {
+    color: var(--turquesa);
+    font-weight: 900;
 }
 
 .estado-lista {
     margin: 0;
-    padding: 18px 0;
+    padding: 22px 0;
     color: var(--texto-suave);
     text-align: center;
 }
 
 .mi-posicion {
-    margin: 8px 0 0;
+    margin: 12px 0 0;
     color: var(--texto-suave);
     font-size: 0.9rem;
     font-weight: 700;
@@ -1002,52 +1147,89 @@
     display: none;
 }
 
-.panel-amigos {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-    padding: clamp(16px, 3vw, 22px);
-}
+/*
+ * En pantallas estrechas el ranking necesita aire: los controles ocupan el
+ * ancho y la lista se estrecha. La rejilla de columnas se compacta (el avatar
+ * se oculta y las cifras van en un tamaño menor) para que el nombre siempre
+ * tenga sitio y las cuatro columnas sigan cabiendo sin scrolls.
+ */
+@media (max-width: 620px) {
+    .pantalla-ranking {
+        gap: 20px;
+    }
 
-.amigos-sin-sesion {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    text-align: center;
-}
+    .ranking-controles {
+        width: 100%;
+    }
 
-.amigos-sin-sesion p {
-    margin: 0;
-    color: var(--texto-suave);
-}
+    .selector-flechas {
+        flex: 1;
+    }
 
-.amigos-con-sesion {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
+    .selector-lista {
+        min-width: 0;
+    }
 
-.lista-amigos:not([data-vacia="true"]) + .lista-vacia,
-.lista-amigos[data-vacia="true"] {
-    display: none;
-}
+    .selector-lista select {
+        min-width: 0;
+    }
 
-.formulario-amigo {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+    /*
+     * En una sola línea no caben los siete campos a 360 px (el nombre se
+     * quedaba en 12 px), así que la fila pasa a dos líneas: arriba posición,
+     * avatar, nombre y puntos; debajo los tres números, a la derecha.
+     */
+    .panel-ranking {
+        --columnas-ranking: 1.5rem 30px minmax(0, 1fr) auto;
+        --hueco-fila: 10px;
+        padding: 14px 12px;
+    }
 
-.fila-formulario {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+    .fila-ranking {
+        grid-template-rows: auto auto;
+        row-gap: 3px;
+    }
 
-.fila-formulario input {
-    flex: 1;
-    min-width: 0;
+    .fila-stats {
+        display: flex;
+        grid-column: 3 / -1;
+        gap: 10px;
+    }
+
+    .fila-stats .fila-dato {
+        font-size: 0.76rem;
+    }
+
+    /* Los rótulos de columna ya no encajan con dos líneas: se esconden */
+    .lista-cabecera {
+        display: none;
+    }
+
+    .lista-ranking--grande .fila-ranking {
+        min-height: 58px;
+        padding: 9px 10px;
+    }
+
+    .podio {
+        gap: 8px;
+    }
+
+    .podio-numero {
+        padding: 2px 5px;
+        font-size: 0.66rem;
+    }
+
+    .podio-columna--1 .podio-pedestal {
+        height: 88px;
+    }
+
+    .podio-columna--2 .podio-pedestal {
+        height: 66px;
+    }
+
+    .podio-columna--3 .podio-pedestal {
+        height: 52px;
+    }
 }
 
 /* ---------- Diálogos ---------- */
@@ -1167,8 +1349,7 @@
 }
 
 .campo input[type="text"],
-.campo input[type="password"],
-.fila-formulario input {
+.campo input[type="password"] {
     width: 100%;
     min-height: 48px;
     padding: 10px 14px;
@@ -1180,8 +1361,7 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.campo input:focus-visible,
-.fila-formulario input:focus-visible {
+.campo input:focus-visible {
     border-color: var(--turquesa);
     outline: none;
     box-shadow: 0 0 0 3px rgb(25 245 200 / 15%);

@@ -1,88 +1,88 @@
 /**
- * ajustes.ts
- * Selector de idioma (ES/EN, en la barra superior) y panel de ajustes con el
- * volumen de los efectos. Todo se guarda en el navegador.
+ * settings.ts (renamed from ajustes.ts)
+ * Language selector (ES/EN flags in the top bar) and settings panel with
+ * effects volume. Everything is stored in the browser.
  */
 
-import { establecerVolumenEfectos, reproducirEfecto } from "../audio/efectos";
+import { establecerVolumenEfectos as setEffectsVolume, reproducirEfecto as playEffect } from "../audio/efectos";
 import type { Idioma } from "../i18n/textos";
-import { cambiarIdioma, detectarIdiomaDelNavegador } from "../i18n/textos";
-import { guardarDato, leerDatoGuardado } from "../utilidades/almacenamiento";
-import { obtenerElemento } from "../utilidades/dom";
+import { cambiarIdioma as changeLanguage, detectarIdiomaDelNavegador as detectBrowserLanguage } from "../i18n/textos";
+import { guardarDato as saveData, leerDatoGuardado as readSavedData } from "../utilidades/almacenamiento";
+import { obtenerElemento as getElement } from "../utilidades/dom";
 
-/** Ajustes que se guardan entre visitas. */
-interface AjustesGuardados {
-    idioma: Idioma;
+/** Settings that persist between visits. */
+interface SavedSettings {
+    language: Idioma;
     /** 0-100 */
-    volumenEfectos: number;
+    effectsVolume: number;
 }
 
-const CLAVE_AJUSTES = "ajustes";
+const STORAGE_KEY = "ajustes";
 
-/** Ajustes actuales. */
-let ajustes: AjustesGuardados = {
-    idioma: detectarIdiomaDelNavegador(),
-    volumenEfectos: 70,
+/** Current settings. */
+let settings: SavedSettings = {
+    language: detectBrowserLanguage(),
+    effectsVolume: 70,
 };
 
-const elementos = {
-    botonAbrir: obtenerElemento("boton-ajustes", HTMLButtonElement),
-    dialogo: obtenerElemento("dialogo-ajustes", HTMLDialogElement),
-    botonesIdioma: [...document.querySelectorAll<HTMLButtonElement>(".boton-idioma")],
-    sliderEfectos: obtenerElemento("volumen-efectos", HTMLInputElement),
-    valorEfectos: obtenerElemento("valor-volumen-efectos", HTMLOutputElement),
+const elements = {
+    openButton: getElement("boton-ajustes", HTMLButtonElement),
+    dialog: getElement("dialogo-ajustes", HTMLDialogElement),
+    languageButtons: [...document.querySelectorAll<HTMLButtonElement>(".boton-idioma")],
+    effectsSlider: getElement("volumen-efectos", HTMLInputElement),
+    effectsValue: getElement("valor-volumen-efectos", HTMLOutputElement),
 };
 
-/** Guarda los ajustes actuales en el navegador. */
-function guardarAjustes(): void {
-    guardarDato(CLAVE_AJUSTES, ajustes);
+/** Saves current settings to the browser. */
+function saveSettings(): void {
+    saveData(STORAGE_KEY, settings);
 }
 
 /**
- * Activa un idioma y marca su botón como pulsado.
- * @param idioma Idioma a activar.
+ * Activates a language and marks its button as pressed.
+ * @param language Language to activate.
  */
-function aplicarIdioma(idioma: Idioma): void {
-    ajustes.idioma = idioma;
-    cambiarIdioma(idioma);
-    elementos.botonesIdioma.forEach((boton) => {
-        boton.setAttribute("aria-pressed", String(boton.dataset.idioma === idioma));
+function applyLanguage(language: Idioma): void {
+    settings.language = language;
+    changeLanguage(language);
+    elements.languageButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.idioma === language));
     });
 }
 
-/** Carga los ajustes guardados, los aplica y conecta los controles. */
-export function iniciarAjustes(): void {
-    const guardados = leerDatoGuardado<Partial<AjustesGuardados>>(CLAVE_AJUSTES, {});
-    ajustes = {
-        idioma: guardados.idioma === "en" || guardados.idioma === "es" ? guardados.idioma : ajustes.idioma,
-        volumenEfectos: typeof guardados.volumenEfectos === "number" ? guardados.volumenEfectos : ajustes.volumenEfectos,
+/** Loads saved settings, applies them, and connects the controls. */
+export function initSettings(): void {
+    const saved = readSavedData<Partial<SavedSettings>>(STORAGE_KEY, {});
+    settings = {
+        language: saved.language === "en" || saved.language === "es" ? saved.language : settings.language,
+        effectsVolume: typeof saved.effectsVolume === "number" ? saved.effectsVolume : settings.effectsVolume,
     };
 
-    aplicarIdioma(ajustes.idioma);
-    establecerVolumenEfectos(ajustes.volumenEfectos / 100);
-    elementos.sliderEfectos.value = String(ajustes.volumenEfectos);
-    elementos.valorEfectos.value = `${ajustes.volumenEfectos}%`;
+    applyLanguage(settings.language);
+    setEffectsVolume(settings.effectsVolume / 100);
+    elements.effectsSlider.value = String(settings.effectsVolume);
+    elements.effectsValue.value = `${settings.effectsVolume}%`;
 
-    elementos.botonAbrir.addEventListener("click", () => elementos.dialogo.showModal());
-    elementos.dialogo.addEventListener("click", (evento) => {
-        if (evento.target === elementos.dialogo) {
-            elementos.dialogo.close();
+    elements.openButton.addEventListener("click", () => elements.dialog.showModal());
+    elements.dialog.addEventListener("click", (event) => {
+        if (event.target === elements.dialog) {
+            elements.dialog.close();
         }
     });
 
-    elementos.botonesIdioma.forEach((boton) => {
-        boton.addEventListener("click", () => {
-            aplicarIdioma(boton.dataset.idioma as Idioma);
-            guardarAjustes();
+    elements.languageButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            applyLanguage(button.dataset.idioma as Idioma);
+            saveSettings();
         });
     });
 
-    elementos.sliderEfectos.addEventListener("input", () => {
-        ajustes.volumenEfectos = Number(elementos.sliderEfectos.value);
-        establecerVolumenEfectos(ajustes.volumenEfectos / 100);
-        elementos.valorEfectos.value = `${ajustes.volumenEfectos}%`;
-        guardarAjustes();
+    elements.effectsSlider.addEventListener("input", () => {
+        settings.effectsVolume = Number(elements.effectsSlider.value);
+        setEffectsVolume(settings.effectsVolume / 100);
+        elements.effectsValue.value = `${settings.effectsVolume}%`;
+        saveSettings();
     });
-    // Al soltar el slider suena un efecto para oír el volumen elegido.
-    elementos.sliderEfectos.addEventListener("change", () => reproducirEfecto("acierto"));
+    // When the slider is released, play a sound so the user can hear the chosen volume.
+    elements.effectsSlider.addEventListener("change", () => playEffect("acierto"));
 }

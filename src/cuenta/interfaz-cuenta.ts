@@ -1,13 +1,14 @@
 /**
- * interfaz-cuenta.ts
- * Interfaz de la cuenta:
- *   - Botón de la cabecera que abre un menú desplegable. Como invitado,
- *     el menú tiene las pestañas Entrar / Crear cuenta (usuario y
- *     contraseña). Con sesión, enseña tu foto, nombre, puntos, código de
- *     amigo y las opciones Editar perfil, Ranking y amigos y Cerrar sesión.
- *   - Diálogo "Editar perfil": nombre, foto, cambiar la contraseña (pide la
- *     actual) y borrar la cuenta.
- *   - Botones de ojo para ver la contraseña y botones de copiar el código.
+ * account-interface.ts (renamed from interfaz-cuenta.ts)
+ * Account UI:
+ *   - Header button that opens a dropdown menu. As guest,
+ *     the menu has Login / Create account tabs (username and
+ *     password). With a session, shows your photo, name, points,
+ *     stats and the friends panel (code, add friend and list),
+ *     plus Edit profile and Log out.
+ *   - "Edit profile" dialog: name, photo, change password (asks for
+ *     current one) and delete the account.
+ *   - Eye buttons to toggle password visibility and copy buttons.
  */
 
 import type { ClaveTexto } from "../i18n/textos";
@@ -63,11 +64,11 @@ const elementos = {
     avatarMenu: obtenerElemento("avatar-menu"),
     nombreMenu: obtenerElemento("nombre-menu"),
     puntosMenu: obtenerElemento("puntos-menu"),
-    codigoMenu: obtenerElemento("codigo-menu"),
+    codigoMenu: obtenerElemento("mi-codigo-social"),
     statPartidas: obtenerElemento("stat-partidas"),
+    statAciertos: obtenerElemento("stat-aciertos"),
     statPrecision: obtenerElemento("stat-precision"),
     botonEditarPerfil: obtenerElemento("boton-editar-perfil", HTMLButtonElement),
-    botonMenuRanking: obtenerElemento("boton-menu-ranking", HTMLButtonElement),
     botonSalir: obtenerElemento("boton-salir", HTMLButtonElement),
     dialogoPerfil: obtenerElemento("dialogo-perfil", HTMLDialogElement),
     formularioPerfil: obtenerElemento("formulario-perfil", HTMLFormElement),
@@ -103,7 +104,7 @@ export interface DatosAvatar {
  * @param elemento Elemento con la clase "avatar".
  * @param datos Jugador (null = invitado).
  */
-export function pintarAvatar(elemento: HTMLElement, datos: DatosAvatar | null): void {
+export function renderAvatar(elemento: HTMLElement, datos: DatosAvatar | null): void {
     const url = datos ? urlAvatar(datos.id, datos.avatarVersion) : null;
     elemento.replaceChildren();
     if (url) {
@@ -128,7 +129,7 @@ export function pintarAvatar(elemento: HTMLElement, datos: DatosAvatar | null): 
  * Traduce un error de cuenta a un mensaje para el jugador.
  * @param error Error recibido.
  */
-export function mensajeDeErrorCuenta(error: unknown): string {
+export function accountErrorMessage(error: unknown): string {
     const claves: Record<string, ClaveTexto> = {
         credenciales: "errorCredenciales",
         "usuario-ocupado": "errorUsuarioOcupado",
@@ -191,11 +192,20 @@ function cambiarModoFormulario(modo: "entrar" | "registro"): void {
 }
 
 /**
+ * Abre el menú de la cuenta (lo usa el panel de amigos al llegar con una
+ * invitación, para dejar al jugador justo delante del formulario).
+ */
+export function openAccountMenu(): void {
+    if (!hayOnline()) return;
+    alternarMenu(true);
+}
+
+/**
  * Abre el menú de la cuenta en "Entrar" o "Crear cuenta".
  * @param modo "entrar" o "registro".
  * @param despues Acción a hacer cuando el jugador haya entrado.
  */
-export function abrirEntrar(modo: "entrar" | "registro" = "entrar", despues: (() => void) | null = null): void {
+export function openLogin(modo: "entrar" | "registro" = "entrar", despues: (() => void) | null = null): void {
     if (!hayOnline()) return;
     alEntrar = despues;
     cambiarModoFormulario(modo);
@@ -226,7 +236,7 @@ async function enviarFormularioEntrar(): Promise<void> {
         alEntrar = null;
         pendiente?.();
     } catch (error) {
-        elementos.mensajeEntrar.textContent = mensajeDeErrorCuenta(error);
+        elementos.mensajeEntrar.textContent = accountErrorMessage(error);
         elementos.menu.classList.remove("sacudir");
         void elementos.menu.offsetWidth;
         elementos.menu.classList.add("sacudir");
@@ -244,7 +254,7 @@ function pintarCuenta(): void {
     const idioma = obtenerIdioma();
     elementos.zonaCuenta.hidden = !hayOnline();
     elementos.botonCuenta.classList.toggle("con-sesion", perfil !== null);
-    pintarAvatar(elementos.avatarCabecera, perfil);
+    renderAvatar(elementos.avatarCabecera, perfil);
     elementos.usuarioCabecera.textContent = perfil ? nombreVisible(perfil) : texto("entrar");
     elementos.puntosCabecera.textContent = perfil ? `${formatearPuntos(perfil.puntosTotales, idioma)} pts` : "";
     elementos.puntosCabecera.hidden = !perfil;
@@ -253,13 +263,14 @@ function pintarCuenta(): void {
     elementos.menuInvitado.hidden = perfil !== null;
     elementos.menuJugador.hidden = perfil === null;
     if (!perfil) return;
-    pintarAvatar(elementos.avatarMenu, perfil);
+    renderAvatar(elementos.avatarMenu, perfil);
     elementos.nombreMenu.textContent = nombreVisible(perfil);
     elementos.puntosMenu.textContent = `${formatearPuntos(perfil.puntosTotales, idioma)} ${texto("puntos")}`;
-    elementos.codigoMenu.textContent = perfil.codigo ?? "—";
+    elementos.codigoMenu.textContent = perfil.codigo ?? perfil.usuario;
     elementos.statPartidas.textContent = formatearPuntos(perfil.partidas, idioma);
+    elementos.statAciertos.textContent = formatearPuntos(perfil.aciertos, idioma);
     elementos.statPrecision.textContent = perfil.preguntas > 0 ? `${Math.round((perfil.aciertos / perfil.preguntas) * 100)}%` : "–";
-    pintarAvatar(elementos.avatarPerfil, perfil);
+    renderAvatar(elementos.avatarPerfil, perfil);
     elementos.botonQuitarFoto.hidden = perfil.avatarVersion === null;
 }
 
@@ -309,7 +320,7 @@ async function guardarPerfil(): Promise<void> {
         mensaje.textContent = texto("cambiosGuardados");
         setTimeout(() => elementos.dialogoPerfil.close(), 700);
     } catch (error) {
-        mensaje.textContent = mensajeDeErrorCuenta(error);
+        mensaje.textContent = accountErrorMessage(error);
         mensaje.classList.add("es-error");
     } finally {
         elementos.botonGuardarPerfil.disabled = false;
@@ -350,9 +361,8 @@ function conectarBotonesDeCopiar(): void {
 
 /**
  * Conecta el menú de la cuenta y el diálogo de editar perfil.
- * @param abrirRanking Muestra la pantalla de ranking (lo decide main.ts).
  */
-export function iniciarInterfazCuenta(abrirRanking: () => void): void {
+export function iniciarInterfazCuenta(): void {
     elementos.botonCuenta.addEventListener("click", () => alternarMenu(!menuAbierto()));
     // Se cierra al pulsar fuera o con Escape.
     document.addEventListener("pointerdown", (evento) => {
@@ -367,7 +377,7 @@ export function iniciarInterfazCuenta(abrirRanking: () => void): void {
     document.querySelectorAll<HTMLElement>("[data-abrir-entrar]").forEach((boton) => {
         boton.addEventListener("click", (evento) => {
             evento.stopPropagation();
-            abrirEntrar(boton.dataset.abrirEntrar === "registro" ? "registro" : "entrar");
+            openLogin(boton.dataset.abrirEntrar === "registro" ? "registro" : "entrar");
         });
     });
 
@@ -385,10 +395,6 @@ export function iniciarInterfazCuenta(abrirRanking: () => void): void {
     });
 
     elementos.botonEditarPerfil.addEventListener("click", abrirEditarPerfil);
-    elementos.botonMenuRanking.addEventListener("click", () => {
-        alternarMenu(false);
-        abrirRanking();
-    });
     elementos.botonSalir.addEventListener("click", async () => {
         alternarMenu(false);
         await salir().catch(() => {});

@@ -177,8 +177,12 @@ end;
 $$;
 
 
--- Genera un código de amigo que no tenga nadie.
-create or replace function public.generar_codigo_amigo()
+-- Genera un código de amigo que no tenga nadie y que además no se parezca al
+-- usuario ni al nombre del jugador: el código es una credencial propia, si
+-- coincidiera con el nombre no aportaría nada y sería fácil de adivinar.
+-- p_usuario y p_nombre son los del jugador que va a recibir el código.
+drop function if exists public.generar_codigo_amigo(text, text);
+create function public.generar_codigo_amigo(p_usuario text default null, p_nombre text default null)
 returns text
 language plpgsql
 volatile
@@ -187,13 +191,18 @@ as $$
 declare
     v_alfabeto text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     v_codigo   text;
+    v_propio   text;
 begin
+    -- Se comparan sin distinguir mayúsculas y sin espacios ni signos.
+    v_propio := upper(regexp_replace(coalesce(p_usuario, '') || coalesce(p_nombre, ''), '[^a-z0-9]', '', 'gi'));
     loop
         v_codigo := '';
         for i in 1..6 loop
             v_codigo := v_codigo || substr(v_alfabeto, 1 + floor(random() * length(v_alfabeto))::int, 1);
         end loop;
-        exit when not exists (select 1 from public.perfiles where codigo = v_codigo);
+        -- Ni el código de otro jugador, ni el usuario o el nombre de este.
+        exit when not exists (select 1 from public.perfiles where codigo = v_codigo)
+              and position(v_codigo in v_propio) = 0;
     end loop;
     return v_codigo;
 end;
@@ -205,7 +214,7 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-    new.codigo := coalesce(new.codigo, public.generar_codigo_amigo());
+    new.codigo := coalesce(new.codigo, public.generar_codigo_amigo(new.usuario, new.nombre));
     return new;
 end;
 $$;
@@ -215,8 +224,45 @@ create trigger al_crear_perfil_codigo
     before insert on public.perfiles
     for each row execute function public.poner_codigo_amigo();
 
--- Jugadores que ya existían sin código.
-update public.perfiles set codigo = public.generar_codigo_amigo() where codigo is null;
+-- Jugadores que ya existían sin código, y los que tenían por código su propio
+-- usuario o nombre (se reparan aunque el archivo se ejecute muchas veces).
+update public.perfiles set codigo = public.generar_codigo_amigo(usuario, nombre)
+    where codigo is null
+       or upper(regexp_replace(codigo, '[^a-z0-9]', '', 'gi'))
+        = upper(regexp_replace(usuario, '[^a-z0-9]', '', 'gi'))
+       or upper(regexp_replace(codigo, '[^a-z0-9]', '', 'gi'))
+        = upper(regexp_replace(coalesce(nombre, ''), '[^a-z0-9]', '', 'gi'));
+
+-- Devuelve el código de amigo del jugador que llama, creándolo si el perfil
+-- se creó antes de que existiera la columna. Así el juego nunca tiene que
+-- inventarse un código ni repetir el usuario.
+drop function if exists public.asegurar_codigo_amigo();
+create function public.asegurar_codigo_amigo()
+returns text
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+    v_usuario text;
+    v_nombre  text;
+    v_codigo  text;
+begin
+    if auth.uid() is null then
+        raise exception 'no-autenticado';
+    end if;
+    select p.usuario, p.nombre, p.codigo into v_usuario, v_nombre, v_codigo
+    from public.perfiles p where p.id = auth.uid();
+    if v_codigo is null
+       or v_codigo = upper(regexp_replace(coalesce(v_usuario, ''), '[^a-z0-9]', '', 'gi'))
+       or v_codigo = upper(regexp_replace(coalesce(v_nombre, ''), '[^a-z0-9]', '', 'gi')) then
+        v_codigo := public.generar_codigo_amigo(v_usuario, v_nombre);
+        update public.perfiles set codigo = v_codigo where id = auth.uid();
+    end if;
+    return v_codigo;
+end;
+$$;
 
 
 -- Indica si un nombre de usuario está libre (para avisar antes de registrarse).
@@ -321,6 +367,9 @@ returns table (
     nombre          text,
     avatar_version  integer,
     puntos          bigint,
+    partidas        integer,
+    aciertos        integer,
+    preguntas       integer,
     soy_yo          boolean
 )
 language sql
@@ -330,6 +379,7 @@ set search_path = ''
 as $$
     with base as (
         select p.id, p.usuario, coalesce(p.nombre, p.usuario) as nombre, p.avatar_version,
+               p.partidas, p.aciertos, p.preguntas,
                case when p_modo = 'total'
                     then nullif(p.puntos_totales, 0)
                     else r.mejor::bigint
@@ -350,6 +400,7 @@ as $$
     )
     select case when o.puntos is null then null else o.pos end,
            o.id, o.usuario, o.nombre, o.avatar_version, o.puntos,
+           o.partidas, o.aciertos, o.preguntas,
            o.id = auth.uid()
     from ordenado o
     where o.pos <= least(greatest(p_limite, 1), 100) or o.id = auth.uid()
@@ -526,7 +577,7 @@ $$;
 -- Permisos de las funciones.
 revoke execute on function public.crear_perfil() from public, anon, authenticated;
 revoke execute on function public.confirmar_usuario() from public, anon, authenticated;
-revoke execute on function public.generar_codigo_amigo() from public, anon, authenticated;
+revoke execute on function public.generar_codigo_amigo(text, text) from public, anon, authenticated;
 revoke execute on function public.poner_codigo_amigo() from public, anon, authenticated;
 revoke execute on function public.cambiar_nombre(text) from public, anon;
 revoke execute on function public.borrar_mi_cuenta() from public, anon;
@@ -543,6 +594,7 @@ grant execute on function public.registrar_partida(text, text, integer, integer,
 grant execute on function public.anadir_amigo(text) to authenticated;
 grant execute on function public.quitar_amigo(uuid) to authenticated;
 grant execute on function public.mis_amigos() to authenticated;
+grant execute on function public.asegurar_codigo_amigo() to authenticated;
 grant execute on function public.avatar_actualizado() to authenticated;
 grant execute on function public.quitar_avatar() to authenticated;
 grant execute on function public.cambiar_nombre(text) to authenticated;

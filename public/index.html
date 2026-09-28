@@ -82,11 +82,11 @@
 
             <div class="barra-acciones">
                 <div class="selector-idioma" role="group" aria-label="Idioma" data-texto-aria="idioma">
-                    <button type="button" class="boton-idioma" data-idioma="es" aria-pressed="true">ES</button>
-                    <button type="button" class="boton-idioma" data-idioma="en" aria-pressed="false">EN</button>
+                    <button type="button" class="boton-idioma" data-idioma="es" aria-pressed="true">🇪🇸</button>
+                    <button type="button" class="boton-idioma" data-idioma="en" aria-pressed="false">🇬🇧</button>
                 </div>
                 <button type="button" id="boton-ajustes" class="boton-icono" aria-haspopup="dialog" aria-label="Ajustes" data-texto-aria="ajustes">
-                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
                 </button>
 
                 <!-- Cuenta: botón y menú desplegable (entrar / crear cuenta, o tu perfil) -->
@@ -143,27 +143,54 @@
                                     <span id="puntos-menu" class="menu-puntos"></span>
                                 </div>
                             </div>
-                            <div class="codigo-amigo">
-                                <span class="etiqueta" data-texto="codigoAmigo">Código de amigo</span>
-                                <div class="codigo-fila">
-                                    <strong id="codigo-menu" class="codigo">······</strong>
-                                    <button type="button" class="boton-icono boton-icono--pequeno boton-copiar" data-copiar="codigo-menu" aria-label="Copiar código" data-texto-aria="copiarCodigo">
-                                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg>
-                                    </button>
-                                </div>
-                            </div>
                             <dl class="menu-estadisticas">
                                 <div><dt data-texto="partidas">Partidas</dt><dd id="stat-partidas"></dd></div>
+                                <div><dt data-texto="aciertos">Aciertos</dt><dd id="stat-aciertos"></dd></div>
                                 <div><dt data-texto="precision">Precisión</dt><dd id="stat-precision"></dd></div>
                             </dl>
+
+                            <!-- Amigos: tu código para compartir, añadir por código o usuario y la lista -->
+                            <div id="desplegable-amigos" class="desplegable-amigos abierto">
+                                <button type="button" id="boton-desplegable-amigos" class="cabecera-desplegable" aria-expanded="true" aria-controls="contenido-desplegable-amigos">
+                                    <span class="cabecera-desplegable-texto">
+                                        <svg class="cabecera-desplegable-icono" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8"/></svg>
+                                        <span data-texto="amigos">Amigos</span>
+                                    </span>
+                                    <span id="cuenta-amigos" class="cabecera-desplegable-cuenta"></span>
+                                    <svg class="flecha-desplegable" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div id="contenido-desplegable-amigos" class="contenido-desplegable">
+                                    <div class="contenido-desplegable-interior">
+                                        <div class="cuerpo-desplegable">
+                                            <div class="codigo-amigo">
+                                                <span class="etiqueta" data-texto="tuCodigoAmigo">Tu código de amigo</span>
+                                                <div class="codigo-fila">
+                                                    <strong id="mi-codigo-social" class="codigo">······</strong>
+                                                    <button type="button" class="boton-icono boton-icono--pequeno boton-copiar" data-copiar="mi-codigo-social" aria-label="Copiar código" data-texto-aria="copiarCodigo">
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg>
+                                                    </button>
+                                                    <button type="button" id="boton-compartir" class="boton boton-pequeno boton-compartir" data-texto="compartir">Compartir</button>
+                                                </div>
+                                                <p id="mensaje-invitacion" class="mensaje" aria-live="polite"></p>
+                                            </div>
+                                            <form id="formulario-amigo" class="formulario-amigo" novalidate>
+                                                <label for="campo-amigo" class="etiqueta" data-texto="anadirAmigo">Añadir amigo</label>
+                                                <div class="fila-formulario">
+                                                    <input type="text" id="campo-amigo" maxlength="24" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Código o usuario" data-texto-placeholder="codigoOUsuario">
+                                                    <button type="submit" class="boton boton-rosa" data-texto="anadir">Añadir</button>
+                                                </div>
+                                                <p id="mensaje-amigo" class="mensaje" aria-live="polite"></p>
+                                            </form>
+                                            <ul id="lista-amigos" class="lista-amigos" data-vacia="true"></ul>
+                                            <p class="lista-vacia" data-texto="sinAmigosTodavia">Aún no tienes amigos.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="menu-acciones">
                                 <button type="button" id="boton-editar-perfil" class="menu-opcion">
                                     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
                                     <span data-texto="editarPerfil">Editar perfil</span>
-                                </button>
-                                <button type="button" id="boton-menu-ranking" class="menu-opcion">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg>
-                                    <span data-texto="rankingYAmigos">Ranking y amigos</span>
                                 </button>
                                 <button type="button" id="boton-salir" class="menu-opcion menu-opcion--salir">
                                     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -344,7 +371,7 @@
             </div>
         </section>
 
-        <!-- Pantalla 5: ranking y amigos -->
+        <!-- Pantalla 5: ranking (los amigos viven en el menú de la cuenta) -->
         <section id="pantalla-ranking" class="pantalla pantalla-ranking" hidden>
             <div class="ranking-cabecera">
                 <h2 class="titulo-seccion" tabindex="-1" data-texto="ranking">Ranking</h2>
@@ -368,49 +395,26 @@
                 </div>
             </div>
 
-            <div class="rejilla-social">
-                <section class="panel-ranking" aria-labelledby="titulo-clasificacion">
-                    <h3 id="titulo-clasificacion" class="solo-lectores" data-texto="clasificacion">Clasificación</h3>
-                    <div id="podio" class="podio"></div>
-                    <ol id="lista-ranking" class="lista-ranking lista-ranking--grande"></ol>
-                    <p id="estado-ranking" class="estado-lista" role="status"></p>
-                    <p id="mi-posicion" class="mi-posicion"></p>
-                </section>
-
-                <aside id="panel-amigos" class="tarjeta panel-amigos" aria-labelledby="titulo-amigos">
-                    <h3 id="titulo-amigos" class="titulo-panel" data-texto="amigos">Amigos</h3>
-                    <div id="amigos-sin-sesion" class="amigos-sin-sesion">
-                        <p data-texto="entraParaAmigosLargo">Crea una cuenta o entra para añadir amigos.</p>
-                        <div class="botonera">
-                            <button type="button" class="boton boton-rosa" data-abrir-entrar="registro" data-texto="crearCuenta">Crear cuenta</button>
-                            <button type="button" class="boton" data-abrir-entrar="entrar" data-texto="entrar">Entrar</button>
-                        </div>
-                    </div>
-                    <div id="amigos-con-sesion" class="amigos-con-sesion" hidden>
-                        <div class="codigo-amigo">
-                            <span class="etiqueta" data-texto="tuCodigoAmigo">Tu código de amigo</span>
-                            <div class="codigo-fila">
-                                <strong id="mi-codigo-social" class="codigo">······</strong>
-                                <button type="button" class="boton-icono boton-icono--pequeno boton-copiar" data-copiar="mi-codigo-social" aria-label="Copiar código" data-texto-aria="copiarCodigo">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h11v11H9zM5 15H4V4h11v1"/></svg>
-                                </button>
-                                <button type="button" id="boton-compartir" class="boton boton-pequeno" data-texto="compartir">Compartir</button>
-                            </div>
-                            <p id="mensaje-invitacion" class="mensaje" aria-live="polite"></p>
-                        </div>
-                        <form id="formulario-amigo" class="formulario-amigo" novalidate>
-                            <label for="campo-amigo" class="etiqueta" data-texto="anadirAmigo">Añadir amigo</label>
-                            <div class="fila-formulario">
-                                <input type="text" id="campo-amigo" maxlength="24" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Código o usuario" data-texto-placeholder="codigoOUsuario">
-                                <button type="submit" class="boton boton-rosa" data-texto="anadir">Añadir</button>
-                            </div>
-                            <p id="mensaje-amigo" class="mensaje" aria-live="polite"></p>
-                        </form>
-                        <ul id="lista-amigos" class="lista-amigos" data-vacia="true"></ul>
-                        <p class="lista-vacia" data-texto="sinAmigosTodavia">Aún no tienes amigos.</p>
-                    </div>
-                </aside>
-            </div>
+            <section class="panel-ranking" aria-labelledby="titulo-clasificacion">
+                <h3 id="titulo-clasificacion" class="solo-lectores" data-texto="clasificacion">Clasificación</h3>
+                <dl id="estadisticas-ranking" class="estadisticas-ranking" hidden>
+                    <div><dt data-texto="tusNumeros">Tus números</dt><dd class="solo-lectores">Partidas · aciertos · precisión</dd></div>
+                    <div><dt data-texto="partidas">Partidas</dt><dd id="stat-partidas-ranking">–</dd></div>
+                    <div><dt data-texto="aciertos">Aciertos</dt><dd id="stat-aciertos-ranking">–</dd></div>
+                    <div><dt data-texto="precision">Precisión</dt><dd id="stat-precision-ranking">–</dd></div>
+                </dl>
+                <div id="podio" class="podio"></div>
+                <div class="lista-cabecera" aria-hidden="true">
+                    <span data-texto="jugador">Jugador</span>
+                    <span data-texto="puntos">Puntos</span>
+                    <span data-texto="partidas">Partidas</span>
+                    <span data-texto="aciertos">Aciertos</span>
+                    <span data-texto="porCiento">%</span>
+                </div>
+                <ol id="lista-ranking" class="lista-ranking lista-ranking--grande"></ol>
+                <p id="estado-ranking" class="estado-lista" role="status"></p>
+                <p id="mi-posicion" class="mi-posicion"></p>
+            </section>
         </section>
     </main>
 
