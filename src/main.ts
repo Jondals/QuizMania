@@ -1,261 +1,217 @@
 /**
  * main.ts
- * Punto de entrada de QuizMania. Arranca los ajustes, el idioma y la
- * sesión, bloquea el clic derecho, añade el sonido de clic a todos los
- * botones y conecta los botones de cada pantalla:
+ * QuizMania entry point. Starts the settings, the language and the session,
+ * blocks the right-click menu, adds the click sound to every button and
+ * connects each screen's buttons:
  *
- *   Inicio (elegir modo + tirar de la palanca) → Carga → Preguntas
- *          → Resultados → (Revisar respuestas) → Jugar de nuevo → Inicio
- *   Cabecera: logo y "Jugar" (inicio), ranking y amigos, idioma, ajustes
- *   (con la música) y el menú de la cuenta.
- * Al abrir la página se ve la pantalla de bienvenida (splash) unos segundos.
+ *   Home (hold topic/mode + pull the lever or press Space) → Loading → Questions
+ *        → Results → (Review answers) → Play again → Home
+ *   Header: logo and "Play" (home), ranking, the language toggle, the
+ *   settings drop-down (with the music) and the account menu, which opens
+ *   "My profile" (friends and Versus challenges).
+ * When the page opens the welcome screen (splash) shows for a moment.
  */
 
-import { initSettings } from "./ajustes/ajustes";
-import { initMusicInterface } from "./audio/interfaz-musica";
-import { detenerEfecto, reproducirEfecto } from "./audio/efectos";
-import { TEMAS } from "./config/temas";
-import { iniciarInterfazCuenta } from "./cuenta/interfaz-cuenta";
-import { EVENTO_SESION, hayOnline, recuperarSesion } from "./cuenta/sesion";
-import { EVENTO_IDIOMA_CAMBIADO, obtenerIdioma, texto } from "./i18n/textos";
-import { estadoPartida } from "./juego/estado";
-import { mostrarPantalla, pantallaActual } from "./juego/pantallas";
-import {
-    abandonarPartida,
-    cambiarIdiomaPartida,
-    empezarRevision,
-    hayPartidaEnJuego,
-    iniciarPartida,
-    moverRevision,
-    mostrarPreguntaActual,
-    mostrarResultados,
-    pintarResultados,
-    terminarPartida,
-} from "./juego/partida";
-import {
-    bloquearSelectorModo,
-    iniciarSelectorModo,
-    moverModo,
-    obtenerModoElegido,
-    pintarSelectorModo,
-} from "./juego/selector-modo";
-import { cargarPantallaRanking, iniciarSocial } from "./online/social";
-import { conectarPalanca, girarRodillos, prepararRodillos } from "./tragaperras/tragaperras";
-import { confirmar } from "./utilidades/confirmar";
-import { elegirAlAzar, esperar } from "./utilidades/aleatorio";
-import { obtenerElemento } from "./utilidades/dom";
-import { bloquearClicDerecho } from "./utilidades/proteccion";
+import { initAccountUi } from "./account/account-ui";
+import { isOnline, restoreSession } from "./account/session";
+import { initBeat } from "./audio/beat";
+import { playEffect } from "./audio/effects";
+import { initMusicUi } from "./audio/music-ui";
+import { abandonGame, changeGameLanguage, endGame, isGameInProgress, moveReview, paintResults, showCurrentQuestion, showResults, startGame, startReview } from "./game/match";
+import { currentScreen, showScreen } from "./game/screens";
+import { formatPoints } from "./game/scoring";
+import { gameState } from "./game/state";
+import { getLanguage, LANGUAGE_CHANGED, t } from "./i18n/texts";
+import { initProfile, loadProfileScreen } from "./online/profile";
+import { initRanking, loadRankingScreen } from "./online/ranking";
+import { initVersus } from "./online/versus";
+import { initSettings } from "./settings/settings";
+import { connectLever } from "./slot/lever";
+import { initSlotMachine, lockSlot, nudgeMode, nudgeTopic, resetSlot, spin } from "./slot/slot-machine";
+import { confirmDialog } from "./utils/confirm";
+import { getElement } from "./utils/dom";
+import { blockContextMenu } from "./utils/protection";
+import { wait } from "./utils/random";
 
-/** Pausa tras pararse los rodillos antes de cargar las preguntas (ms). */
-const PAUSA_TRAS_ELEGIR_TEMA = 1400;
+/** Pause after the reels stop before loading the questions (ms). */
+const PAUSE_AFTER_SPIN = 1400;
 
-const palanca = obtenerElemento("palanca", HTMLButtonElement);
-const tituloTragaperras = obtenerElemento("titulo-tragaperras");
-const resultadoTragaperras = obtenerElemento("resultado-tragaperras");
-const tirasRodillos = [...document.querySelectorAll<HTMLElement>(".rodillo-tira")];
+const lever = getElement("lever", HTMLButtonElement);
 
-/** Evita tirar de la palanca otra vez mientras gira. */
-let tragaperrasGirando = false;
+/** Avoids pulling the lever again while it spins. */
+let spinning = false;
 
 /**
- * Si hay una partida en juego, pregunta si se quiere abandonar.
- * @returns true si se puede salir (no había partida o el jugador acepta).
+ * If a game is in progress, asks whether to abandon it.
+ * @returns true if it's fine to leave (no game, or the player accepts).
  */
-async function confirmarSalida(): Promise<boolean> {
-    if (!hayPartidaEnJuego()) {
-        return true;
-    }
-    const acepta = await confirmar({
-        titulo: texto("tituloAbandonar"),
-        mensaje: texto("confirmarAbandonar"),
-        aceptar: texto("abandonar"),
-        peligroso: true,
+async function confirmLeave(): Promise<boolean> {
+    if (!isGameInProgress()) return true;
+    const accepted = await confirmDialog({ title: t("leaveGameTitle"), message: t("leaveGameConfirm"), accept: t("leave"), danger: true });
+    if (accepted) abandonGame();
+    return accepted;
+}
+
+/** Shows the home screen with the slot machine ready to pull. */
+function showHome(): void {
+    lever.disabled = false;
+    resetSlot();
+    gameState.reviewing = false;
+    showScreen("home");
+}
+
+/** Shows the ranking screen. */
+async function showRanking(): Promise<void> {
+    if (spinning || !(await confirmLeave())) return;
+    showScreen("ranking");
+    void loadRankingScreen();
+}
+
+/** Shows your profile: friends and Versus challenges. */
+async function showProfile(): Promise<void> {
+    if (spinning || !(await confirmLeave())) return;
+    showScreen("profile");
+    void loadProfileScreen();
+}
+
+/** Pulls the lever: spins the reels and starts the game they decide. */
+async function pull(): Promise<void> {
+    if (spinning) return;
+    spinning = true;
+    lever.disabled = true;
+    lockSlot(true);
+    const result = await spin();
+    await wait(PAUSE_AFTER_SPIN);
+    spinning = false;
+    await startGame(result.mode, result.topic, { multiplier: result.multiplier });
+}
+
+/** Plays a click when any button is pressed, except those marked data-no-click (they have their own sound). */
+function enableButtonSounds(): void {
+    document.addEventListener("click", (event) => {
+        const button = (event.target as Element | null)?.closest("button");
+        if (button && !button.disabled && !("noClick" in button.dataset)) playEffect("click");
     });
-    if (acepta) {
-        abandonarPartida();
-    }
-    return acepta;
-}
-
-/** Muestra la portada con la tragaperras lista para tirar. */
-function mostrarInicio(): void {
-    tituloTragaperras.textContent = texto("tiraDeLaPalanca");
-    tituloTragaperras.dataset.texto = "tiraDeLaPalanca";
-    resultadoTragaperras.textContent = "—";
-    document.body.style.removeProperty("--acento");
-    palanca.disabled = false;
-    bloquearSelectorModo(false);
-    pintarSelectorModo();
-    estadoPartida.enRevision = false;
-    mostrarPantalla("inicio");
-}
-
-/** Muestra la pantalla de ranking y amigos. */
-async function mostrarRanking(): Promise<void> {
-    if (tragaperrasGirando || !(await confirmarSalida())) {
-        return;
-    }
-    mostrarPantalla("ranking");
-    void cargarPantallaRanking();
 }
 
 /**
- * Tira de la palanca: gira los rodillos, elige un tema al azar (en Ruleta,
- * siempre "Al azar", que mezcla temas), lo anuncia y empieza la partida.
+ * Keyboard shortcuts of the home screen (not while typing or with a dialog open):
+ *   Space   pulls the lever.
+ *   ← / →   nudge the mode reel.
+ *   ↑ / ↓   nudge the topic reel.
+ * @param pullWithAnimation Pulls the lever with its animation.
  */
-async function tirarDeLaPalanca(): Promise<void> {
-    if (tragaperrasGirando) {
-        return;
-    }
-    tragaperrasGirando = true;
-    palanca.disabled = true;
-    bloquearSelectorModo(true);
-
-    const modo = obtenerModoElegido();
-    reproducirEfecto("giro");
-    tituloTragaperras.textContent = texto("girando");
-    delete tituloTragaperras.dataset.texto;
-    resultadoTragaperras.textContent = "…";
-
-    const temaElegido = modo.temasMezclados ? TEMAS[0] : elegirAlAzar(TEMAS);
-    await girarRodillos(tirasRodillos, temaElegido);
-
-    detenerEfecto("giro");
-    reproducirEfecto("tema");
-    document.body.style.setProperty("--acento", temaElegido.color);
-    const nombreTema = temaElegido.nombre[obtenerIdioma()];
-    tituloTragaperras.textContent = `${temaElegido.icono} ${nombreTema}`;
-    resultadoTragaperras.textContent = nombreTema;
-
-    await esperar(PAUSA_TRAS_ELEGIR_TEMA);
-    tragaperrasGirando = false;
-    await iniciarPartida(modo, temaElegido);
-}
-
-/**
- * Hace sonar un clic al pulsar cualquier botón, salvo los marcados con
- * data-sin-clic (que ya tienen su propio sonido).
- */
-function activarSonidoDeBotones(): void {
-    document.addEventListener("click", (evento) => {
-        const boton = (evento.target as Element | null)?.closest("button");
-        if (boton && !boton.disabled && !("sinClic" in boton.dataset)) {
-            reproducirEfecto("clic");
+function enableHomeShortcuts(pullWithAnimation: () => void): void {
+    document.addEventListener("keydown", (event) => {
+        if (event.repeat || currentScreen() !== "home" || spinning) return;
+        const target = event.target as HTMLElement | null;
+        // Not while typing, inside a drop-down menu or with a dialog open.
+        if (target?.closest("input, textarea, select, dialog, .settings-menu, .account-menu") || document.querySelector("dialog[open]")) return;
+        if (event.code === "Space") {
+            // Space on any focused button presses that button; on the lever it already pulls.
+            if (target?.closest("button")) return;
+            event.preventDefault();
+            pullWithAnimation();
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.preventDefault();
+            nudgeMode(event.key === "ArrowLeft" ? -1 : 1);
+        } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            event.preventDefault();
+            nudgeTopic(event.key === "ArrowUp" ? -1 : 1);
         }
     });
 }
 
-/**
- * Atajos de teclado de la portada (salvo si se está escribiendo en un campo
- * o hay un diálogo abierto):
- *   Espacio  tira de la palanca.
- *   ← / →    cambian de modo.
- * @param tirar Tira de la palanca con su animación.
- */
-function activarAtajosPortada(tirar: () => void): void {
-    document.addEventListener("keydown", (evento) => {
-        if (evento.repeat || pantallaActual() !== "inicio" || tragaperrasGirando) return;
-        const objetivo = evento.target as HTMLElement | null;
-        if (objetivo?.closest("input, textarea, select, dialog") || document.querySelector("dialog[open]")) return;
-        if (evento.code === "Space") {
-            if (objetivo === palanca) return; // La propia palanca ya responde al Espacio.
-            evento.preventDefault();
-            tirar();
-        } else if (evento.key === "ArrowLeft" || evento.key === "ArrowRight") {
-            evento.preventDefault();
-            moverModo(evento.key === "ArrowLeft" ? -1 : 1);
-        }
-    });
-}
-
-/**
- * Quita la pantalla de bienvenida cuando termina su animación, o antes si
- * se pulsa una tecla o se hace clic.
- */
-function prepararSplash(): void {
+/** Removes the splash when its animation ends, or earlier on any key or click. */
+function prepareSplash(): void {
     const splash = document.getElementById("splash");
     if (!splash) return;
-    const quitar = () => {
-        splash.classList.add("oculta");
-        window.removeEventListener("keydown", quitar, true);
-        window.removeEventListener("pointerdown", quitar, true);
+    const hide = () => {
+        splash.classList.add("is-hidden");
+        window.removeEventListener("keydown", hide, true);
+        window.removeEventListener("pointerdown", hide, true);
     };
-    splash.addEventListener("animationend", (evento) => {
-        if (evento.target === splash) quitar();
+    splash.addEventListener("animationend", (event) => {
+        if (event.target === splash) hide();
     });
-    window.addEventListener("keydown", quitar, true);
-    window.addEventListener("pointerdown", quitar, true);
+    window.addEventListener("keydown", hide, true);
+    window.addEventListener("pointerdown", hide, true);
 }
 
-/** Conecta cada botón de las pantallas con su acción. */
-function conectarBotones(): void {
-    const tirarConAnimacion = conectarPalanca(palanca, () => void tirarDeLaPalanca());
-    activarAtajosPortada(tirarConAnimacion);
-    const irAlInicio = async () => {
-        if (!tragaperrasGirando && (await confirmarSalida())) mostrarInicio();
+/** Connects every screen button with its action. */
+function connectButtons(): void {
+    const pullWithAnimation = connectLever(lever, () => void pull());
+    enableHomeShortcuts(pullWithAnimation);
+    const goHome = async () => {
+        if (!spinning && (await confirmLeave())) showHome();
     };
-    obtenerElemento("boton-inicio").addEventListener("click", irAlInicio);
-    obtenerElemento("nav-jugar").addEventListener("click", irAlInicio);
-    const botonRanking = obtenerElemento("boton-ranking");
-    botonRanking.hidden = !hayOnline();
-    botonRanking.addEventListener("click", () => void mostrarRanking());
-    obtenerElemento("boton-reintentar").addEventListener("click", mostrarInicio);
-    obtenerElemento("boton-terminar").addEventListener("click", async () => {
-        const acepta = await confirmar({
-            titulo: texto("tituloTerminar"),
-            mensaje: texto("confirmarTerminar"),
-            aceptar: texto("terminar"),
+    getElement("home-button").addEventListener("click", goHome);
+    getElement("nav-play").addEventListener("click", goHome);
+    const rankingButton = getElement("nav-ranking");
+    rankingButton.hidden = !isOnline();
+    rankingButton.addEventListener("click", () => void showRanking());
+    getElement("retry-button").addEventListener("click", showHome);
+    getElement("end-game-button").addEventListener("click", async () => {
+        // In Double or nothing, ending is cashing out with your points.
+        const cashOut = gameState.mode.loseAllOnMiss;
+        const accepted = await confirmDialog({
+            title: t(cashOut ? "cashOutTitle" : "endGameTitle"),
+            message: cashOut ? `${t("cashOutConfirm")} ${formatPoints(gameState.points, getLanguage())} ${t("points")}.` : t("endGameConfirm"),
+            accept: t(cashOut ? "cashOut" : "endGame"),
         });
-        if (acepta && hayPartidaEnJuego()) terminarPartida();
+        if (accepted && isGameInProgress()) endGame();
     });
-    obtenerElemento("boton-revisar").addEventListener("click", empezarRevision);
-    obtenerElemento("boton-anterior").addEventListener("click", () => moverRevision(-1));
-    obtenerElemento("boton-siguiente").addEventListener("click", () => moverRevision(1));
-    obtenerElemento("boton-ver-resultados").addEventListener("click", mostrarResultados);
-    document.querySelectorAll(".boton-jugar-de-nuevo").forEach((boton) => boton.addEventListener("click", mostrarInicio));
-    document.querySelectorAll<HTMLElement>(".boton-ir-ranking").forEach((boton) => {
-        boton.hidden = !hayOnline();
-        boton.addEventListener("click", () => void mostrarRanking());
+    getElement("review-button").addEventListener("click", startReview);
+    getElement("review-previous").addEventListener("click", () => moveReview(-1));
+    getElement("review-next").addEventListener("click", () => moveReview(1));
+    getElement("see-results-button").addEventListener("click", showResults);
+    document.querySelectorAll(".play-again-button").forEach((button) => button.addEventListener("click", showHome));
+    document.querySelectorAll<HTMLElement>(".see-ranking-button").forEach((button) => {
+        button.hidden = !isOnline();
+        button.addEventListener("click", () => void showRanking());
     });
 }
 
 /**
- * Repinta los textos que se generan desde el código (contador, tema…)
- * cuando el jugador cambia de idioma. Las preguntas ya cargadas no se
- * traducen de nuevo; las siguientes saldrán en el idioma nuevo.
+ * Repaints the texts generated by code when the player changes language.
+ * Questions on screen are translated too (from their original text).
  */
-function repintarAlCambiarIdioma(): void {
-    document.addEventListener(EVENTO_IDIOMA_CAMBIADO, () => {
-        const pantalla = pantallaActual();
-        if (pantalla === "pregunta" && estadoPartida.historial.length > 0) {
-            // Las preguntas también cambian de idioma (se traducen desde el original).
-            mostrarPreguntaActual();
-            void cambiarIdiomaPartida(obtenerIdioma());
-        } else if (pantalla === "resultados") {
-            pintarResultados();
-        } else if (pantalla === "ranking") {
-            void cargarPantallaRanking();
+function repaintOnLanguageChange(): void {
+    document.addEventListener(LANGUAGE_CHANGED, () => {
+        const screen = currentScreen();
+        if (screen === "question" && gameState.history.length > 0) {
+            showCurrentQuestion();
+            void changeGameLanguage(getLanguage());
+        } else if (screen === "results") {
+            paintResults();
+        } else if (screen === "ranking") {
+            void loadRankingScreen();
         }
     });
 }
 
-/** Arranca el juego. */
-async function iniciarJuego(): Promise<void> {
-    prepararSplash();
-    bloquearClicDerecho();
-    repintarAlCambiarIdioma();
-    initSettings();
-    initMusicInterface();
-    iniciarInterfazCuenta();
-    iniciarSelectorModo();
-    prepararRodillos(tirasRodillos);
-    activarSonidoDeBotones();
-    conectarBotones();
-    // Al entrar o salir cambian los récords que se enseñan en la portada.
-    document.addEventListener(EVENTO_SESION, pintarSelectorModo);
-
-    await recuperarSesion().catch(() => {});
-    iniciarSocial();
+/** Writes the version in the footer. */
+function paintVersion(): void {
+    getElement("app-version").textContent = `v${__APP_VERSION__}`;
 }
 
-void iniciarJuego();
+/** Starts the game. */
+async function start(): Promise<void> {
+    prepareSplash();
+    blockContextMenu();
+    repaintOnLanguageChange();
+    initSettings();
+    initMusicUi();
+    initBeat(getElement("slot-machine"));
+    initAccountUi(() => void showProfile());
+    initSlotMachine();
+    enableButtonSounds();
+    connectButtons();
+    paintVersion();
+    initVersus();
+    await restoreSession().catch(() => {});
+    initRanking(() => void showProfile());
+    initProfile(() => void showProfile(), showHome);
+}
+
+void start();

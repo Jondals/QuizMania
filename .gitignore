@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.pruebas/
+.test-build/
 .vercel/
 .env
 .env.local

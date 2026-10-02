@@ -1,58 +1,57 @@
 /*
  * style.css
- * Estilos de QuizMania: tema oscuro de casino neón (rosa, turquesa y
- * amarillo) con fondo animado. Todo va en columnas centradas con un ancho
- * máximo y esquinas poco redondeadas (--radio: 8px como máximo).
- * --acento cambia según el tema que sale en la tragaperras.
- * Este archivo tiene solo lo necesario para la primera pantalla (fondo,
- * bienvenida, cabecera, portada y tragaperras) y se incrusta minificado
- * dentro del HTML al compilar. El resto de pantallas y diálogos está en
- * estilos-resto.css, que se carga justo después sin bloquear el pintado.
+ * Critical styles of QuizMania: dark neon casino theme (pink, teal and
+ * yellow) with an animated background. Everything sits in centred columns
+ * with a maximum width and barely rounded corners (--radius: 8px at most).
+ * --accent changes with the topic the slot machine picks; --mode-color with
+ * the mode on the second reel; --beat and --energy follow the music.
+ * This file only holds what the first screen needs (background, splash,
+ * header, home and slot machine) and is inlined, minified, into the HTML at
+ * build time. Everything else lives in deferred.css, loaded right after
+ * without blocking the first paint.
  */
 
 /* ---------- Variables ---------- */
 :root {
-    --fondo: #09090f;
-    --superficie: #12121c;
-    --superficie-2: #191926;
-    --superficie-hover: #222233;
-    --borde: #292a3d;
-    --borde-suave: #1e1f2e;
-    --texto: #f3f2f8;
-    --texto-suave: #a5a4bd;
-    --rosa: #ff2e7e;
-    /* Rosa algo más oscuro para fondos con texto blanco (contraste AA ≥ 4.5) */
-    --rosa-fuerte: #e0115f;
-    --turquesa: #19f5c8;
-    --cian: #22e5ff;
-    --amarillo: #ffd84d;
-    --violeta: #8b5cf6;
-    --rojo: #ff5470;
-    --acento: var(--turquesa);
-    --radio: 8px;
-    --radio-pequeno: 6px;
-    --radio-mini: 4px;
-    --ancho-contenido: 1160px;
-    --margen-lateral: clamp(14px, 4vw, 32px);
-    --altura-simbolo: clamp(58px, 13vw, 84px);
-    /* La ventana del rodillo enseña el icono del centro y medio icono arriba y abajo */
-    --altura-ventana: calc(var(--altura-simbolo) * 1.7);
-    --altura-barra: 76px;
-    --relleno-main: clamp(20px, 4vw, 40px);
-    /* Alto disponible bajo la barra superior (para centrar en vertical) */
-    --alto-util: calc(100dvh - var(--altura-barra) - 2 * var(--relleno-main));
-    --recorrido-palanca: 120px;
-    --fuente-led: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
-    --curva-suave: cubic-bezier(0.22, 1, 0.36, 1);
-    --curva-rebote: cubic-bezier(0.34, 1.56, 0.64, 1);
-    /* Cursores del juego: flecha rosa neón y, sobre lo que se puede pulsar, turquesa con una chispa */
-    --cursor-flecha: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 3l7.6 19.2 2.7-8 8.1-2.8z' fill='%23ff2e7e' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, auto;
-    --cursor-mano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M4 3l7.6 19.2 2.7-8 8.1-2.8z' fill='%2319f5c8' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M24 18l1.3 2.9 3 .3-2.3 2 .7 3-2.7-1.6-2.7 1.6.7-3-2.3-2 3-.3z' fill='%23ffd84d'/%3E%3C/svg%3E") 4 3, pointer;
+    --background: #09090f;
+    --surface: #12121c;
+    --surface-2: #191926;
+    --surface-hover: #222233;
+    --border: #292a3d;
+    --border-soft: #1e1f2e;
+    --text: #f3f2f8;
+    --text-soft: #a5a4bd;
+    --pink: #ff2e7e;
+    /* Darker pink for backgrounds with white text (AA contrast ≥ 4.5) */
+    --pink-strong: #e0115f;
+    --teal: #19f5c8;
+    --cyan: #22e5ff;
+    --yellow: #ffd84d;
+    --violet: #8b5cf6;
+    --red: #ff5470;
+    --accent: var(--teal);
+    --radius: 8px;
+    --radius-small: 6px;
+    --radius-tiny: 4px;
+    --content-width: 1160px;
+    --side-margin: clamp(14px, 4vw, 32px);
+    --symbol-height: clamp(58px, 13vw, 78px);
+    /* The reel window shows the centre plate and half a plate above and below */
+    --window-height: calc(var(--symbol-height) * 1.7);
+    --bar-height: 76px;
+    --main-padding: clamp(20px, 4vw, 40px);
+    --lever-travel: 120px;
+    --led-font: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+    --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Game cursors: neon pink arrow and, over anything clickable, a teal one with a sparkle */
+    --cursor-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 3l7.6 19.2 2.7-8 8.1-2.8z' fill='%23ff2e7e' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, auto;
+    --cursor-hand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M4 3l7.6 19.2 2.7-8 8.1-2.8z' fill='%2319f5c8' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M24 18l1.3 2.9 3 .3-2.3 2 .7 3-2.7-1.6-2.7 1.6.7-3-2.3-2 3-.3z' fill='%23ffd84d'/%3E%3C/svg%3E") 4 3, pointer;
     color-scheme: dark;
 }
 
-/* Posición de la palanca (0 arriba, 1 abajo); registrada para poder animarla */
-@property --tiron {
+/* Lever position (0 up, 1 down); registered so it can be animated */
+@property --pull {
     syntax: "<number>";
     inherits: true;
     initial-value: 0;
@@ -71,19 +70,21 @@
 
 html {
     -webkit-text-size-adjust: 100%;
-    cursor: var(--cursor-flecha);
+    cursor: var(--cursor-arrow);
 }
 
 body {
+    display: flex;
+    flex-direction: column;
     margin: 0;
     min-height: 100vh;
     min-height: 100dvh;
     font-family: "Segoe UI Variable Display", "SF Pro Display", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
-    color: var(--texto);
-    background: var(--fondo);
+    color: var(--text);
+    background: var(--background);
     overflow-x: hidden;
-    /* Sin selección de texto ni menú de pulsación larga (junto con el bloqueo del clic derecho) */
+    /* No text selection or long-press menu (together with the right-click block) */
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
@@ -93,13 +94,14 @@ body {
 button,
 select,
 label[for],
-.boton-archivo,
-.subir-canciones {
-    cursor: var(--cursor-mano);
+a,
+.file-button,
+.upload-songs {
+    cursor: var(--cursor-hand);
 }
 
 button:disabled {
-    cursor: var(--cursor-flecha);
+    cursor: var(--cursor-arrow);
 }
 
 input {
@@ -120,7 +122,7 @@ h3 {
 }
 
 :focus-visible {
-    outline: 2px solid var(--turquesa);
+    outline: 2px solid var(--teal);
     outline-offset: 2px;
 }
 
@@ -128,7 +130,7 @@ h3 {
     outline: none;
 }
 
-.solo-lectores {
+.sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -137,58 +139,63 @@ h3 {
     white-space: nowrap;
 }
 
-.rosa {
-    color: var(--rosa);
+.pink {
+    color: var(--pink);
 }
 
-.turquesa {
-    color: var(--turquesa);
+.teal {
+    color: var(--teal);
 }
 
-.amarillo {
-    color: var(--amarillo);
+.yellow {
+    color: var(--yellow);
 }
 
-.cian {
-    color: var(--cian);
+.cyan {
+    color: var(--cyan);
 }
 
-/* ---------- Fondo animado ---------- */
+/* ---------- Animated background ---------- */
 /*
- * Tres luces de neón muy grandes y difuminadas que se mueven despacio, un
- * suelo de rejilla en perspectiva que avanza hacia el jugador y símbolos de
- * tragaperras que suben flotando. Solo se animan transform y opacity.
+ * Three huge blurred neon lights drifting slowly, a perspective grid floor
+ * moving towards the player and slot symbols floating up. Only transform
+ * and opacity are animated. The falling question marks and the stars live
+ * in deferred.css (they only appear after 2.5 s).
  */
-.fondo {
+.background {
     position: fixed;
     inset: 0;
     z-index: -1;
     overflow: hidden;
-    background: var(--fondo);
+    background: var(--background);
     pointer-events: none;
 }
 
-/*
- * El movimiento empieza cuando la página ya se ha cargado (tras la
- * bienvenida): así la primera vista es estable y rápida de pintar.
- */
-.fondo-luz,
-.fondo-suelo {
+/* Movement starts once the page has loaded: the first view is stable and quick to paint. */
+.background-light,
+.background-floor {
     animation-delay: 2.5s !important;
 }
 
-.fondo-simbolos {
+.background-symbols,
+.background-rain,
+.background-stars {
+    position: absolute;
+    inset: 0;
     opacity: 0;
-    animation: fundido-entrada 1.5s ease 2.5s forwards;
 }
 
-@keyframes fundido-entrada {
+.background-symbols {
+    animation: fade-in 1.5s ease 2.5s forwards;
+}
+
+@keyframes fade-in {
     to {
         opacity: 1;
     }
 }
 
-.fondo-luz {
+.background-light {
     position: absolute;
     width: 70vmax;
     height: 70vmax;
@@ -197,49 +204,49 @@ h3 {
     will-change: transform;
 }
 
-.fondo-luz--rosa {
+.background-light--pink {
     top: -35vmax;
     left: -20vmax;
     background: radial-gradient(circle, rgb(255 46 126 / 30%), transparent 62%);
-    animation: deriva-a 26s ease-in-out infinite alternate;
+    animation: drift-a 26s ease-in-out infinite alternate;
 }
 
-.fondo-luz--turquesa {
+.background-light--teal {
     right: -30vmax;
     bottom: -40vmax;
     background: radial-gradient(circle, rgb(25 245 200 / 18%), transparent 62%);
-    animation: deriva-b 32s ease-in-out infinite alternate;
+    animation: drift-b 32s ease-in-out infinite alternate;
 }
 
-.fondo-luz--violeta {
+.background-light--violet {
     top: 20vh;
     left: 35vw;
     width: 55vmax;
     height: 55vmax;
     background: radial-gradient(circle, rgb(139 92 246 / 16%), transparent 62%);
-    animation: deriva-c 38s ease-in-out infinite alternate;
+    animation: drift-c 38s ease-in-out infinite alternate;
 }
 
-@keyframes deriva-a {
+@keyframes drift-a {
     to {
         transform: translate(18vw, 14vh) scale(1.15);
     }
 }
 
-@keyframes deriva-b {
+@keyframes drift-b {
     to {
         transform: translate(-22vw, -12vh) scale(1.1);
     }
 }
 
-@keyframes deriva-c {
+@keyframes drift-c {
     to {
         transform: translate(-18vw, 16vh) scale(0.85);
     }
 }
 
-/* Suelo de rejilla estilo synthwave */
-.fondo-suelo {
+/* Synthwave grid floor */
+.background-floor {
     position: absolute;
     right: -50%;
     bottom: -10%;
@@ -254,17 +261,17 @@ h3 {
     opacity: 0.5;
     transform: perspective(420px) rotateX(62deg);
     transform-origin: 50% 0;
-    animation: suelo 3.5s linear infinite;
+    animation: floor 3.5s linear infinite;
 }
 
-@keyframes suelo {
+@keyframes floor {
     to {
         background-position: 0 64px, 0 0;
     }
 }
 
-/* Símbolos flotando */
-.fondo-simbolos span {
+/* Floating symbols */
+.background-symbols span {
     position: absolute;
     bottom: -10vh;
     left: var(--x);
@@ -275,21 +282,21 @@ h3 {
     -webkit-text-stroke: 1.5px rgb(255 216 77 / 55%);
     text-shadow: 0 0 18px rgb(255 216 77 / 30%);
     opacity: 0;
-    animation: flotar var(--t) linear var(--d) infinite;
+    animation: float-up var(--t) linear var(--d) infinite;
     will-change: transform, opacity;
 }
 
-.fondo-simbolos span:nth-child(3n + 2) {
+.background-symbols span:nth-child(3n + 2) {
     -webkit-text-stroke-color: rgb(255 46 126 / 60%);
     text-shadow: 0 0 18px rgb(255 46 126 / 35%);
 }
 
-.fondo-simbolos span:nth-child(3n) {
+.background-symbols span:nth-child(3n) {
     -webkit-text-stroke-color: rgb(25 245 200 / 55%);
     text-shadow: 0 0 18px rgb(25 245 200 / 30%);
 }
 
-@keyframes flotar {
+@keyframes float-up {
     0% {
         opacity: 0;
         transform: translateY(0) rotate(0);
@@ -304,98 +311,112 @@ h3 {
     }
 }
 
-/* ---------- Pantalla de bienvenida ---------- */
+/* ---------- Welcome screen ---------- */
 .splash {
     position: fixed;
     inset: 0;
     z-index: 100;
     display: grid;
     place-items: center;
-    background:
-        radial-gradient(ellipse 60% 50% at 50% 40%, rgb(255 46 126 / 18%), transparent 70%),
-        var(--fondo);
-    animation: splash-fuera 0.25s ease-in 0.85s forwards;
+    background: radial-gradient(ellipse 60% 50% at 50% 40%, rgb(255 46 126 / 18%), transparent 70%), var(--background);
+    /* Visible ~1.5 s (reels stop at 0.7 / 0.9 / 1.1 s, then the jackpot flash), then fades out */
+    animation: splash-out 0.3s ease-in 1.5s forwards;
 }
 
-.splash.oculta {
+.splash.is-hidden {
     display: none;
 }
 
-@keyframes splash-fuera {
+@keyframes splash-out {
     to {
         opacity: 0;
         visibility: hidden;
     }
 }
 
-.splash-contenido {
+.splash-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    animation: splash-entrar 0.3s var(--curva-suave) both;
 }
 
-/* Solo escala (sin opacidad) para que el primer pintado sea inmediato */
-@keyframes splash-entrar {
-    from {
-        transform: scale(0.94);
-    }
-}
-
-.splash-rodillos {
+.splash-reels {
     display: grid;
     grid-template-columns: repeat(3, 72px);
     gap: 8px;
     padding: 10px;
     border: 2px solid transparent;
-    border-radius: var(--radio);
+    border-radius: var(--radius);
     background:
         linear-gradient(#07060b, #07060b) padding-box,
-        linear-gradient(135deg, var(--rosa), var(--amarillo), var(--turquesa)) border-box;
+        linear-gradient(135deg, var(--pink), var(--yellow), var(--teal)) border-box;
     box-shadow: 0 0 40px rgb(255 46 126 / 30%);
+    /* Jackpot flash once the third reel lands on 7 */
+    animation: splash-jackpot 0.2s ease-out 1.1s 2;
 }
 
-.splash-ventana {
+@keyframes splash-jackpot {
+    50% {
+        box-shadow: 0 0 70px rgb(255 216 77 / 75%), 0 0 0 4px rgb(255 216 77 / 55%);
+        transform: scale(1.06);
+    }
+}
+
+.splash-window {
     height: 80px;
     overflow: hidden;
-    border-radius: var(--radio-pequeno);
+    border-radius: var(--radius-small);
     background: linear-gradient(#7d7896, #e9e6f7 22%, #fff 50%, #e9e6f7 78%, #7d7896);
 }
 
-.splash-tira {
+.splash-strip {
     display: flex;
     flex-direction: column;
-    animation: splash-girar 0.45s cubic-bezier(0.15, 0.7, 0.25, 1.08) forwards;
+    animation: splash-spin 0.7s cubic-bezier(0.2, 0.6, 0.25, 1.06) forwards;
 }
 
-.splash-ventana:nth-child(2) .splash-tira {
-    animation-duration: 0.55s;
+.splash-window:nth-child(2) .splash-strip {
+    animation-duration: 0.9s;
 }
 
-.splash-ventana:nth-child(3) .splash-tira {
-    animation-duration: 0.65s;
+.splash-window:nth-child(3) .splash-strip {
+    animation-duration: 1.1s;
 }
 
-.splash-tira span {
+.splash-strip span {
     display: grid;
     flex: none;
     place-items: center;
     height: 80px;
+    color: #2a2440;
     font-size: 40px;
+    font-weight: 900;
     line-height: 1;
 }
 
-.splash-tira .siete {
-    color: var(--rosa-fuerte);
+.splash-strip .seven {
+    color: var(--pink-strong);
     font-size: 56px;
-    font-weight: 900;
     text-shadow: 0 2px 0 #7a0a36;
 }
 
-@keyframes splash-girar {
+/* Nine symbols go by before the 7 (each 80 px tall) */
+@keyframes splash-spin {
     to {
-        transform: translateY(-400px);
+        transform: translateY(-720px);
+    }
+}
+
+/* The 7s glow once all three have landed */
+.splash-strip .seven {
+    animation: splash-seven 0.2s ease-out 1.1s 2;
+}
+
+@keyframes splash-seven {
+    50% {
+        color: var(--pink);
+        text-shadow: 0 0 18px var(--pink), 0 2px 0 #7a0a36;
     }
 }
 
@@ -406,31 +427,18 @@ h3 {
     font-size: 2rem;
     font-weight: 900;
     letter-spacing: -0.01em;
-    opacity: 0;
-    animation: splash-logo 0.3s var(--curva-suave) 0.45s forwards;
 }
 
 .splash-logo b,
-.marca-nombre b {
-    background: linear-gradient(90deg, var(--rosa), var(--amarillo));
+.brand-name b {
+    background: linear-gradient(90deg, var(--pink), var(--yellow));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
 }
 
-@keyframes splash-logo {
-    from {
-        opacity: 0;
-        transform: translateY(8px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
-}
-
-/* ---------- Barra superior ---------- */
-.barra-superior {
+/* ---------- Top bar ---------- */
+.top-bar {
     position: sticky;
     top: 0;
     z-index: 20;
@@ -439,8 +447,8 @@ h3 {
     backdrop-filter: blur(14px) saturate(140%);
 }
 
-/* Línea inferior degradada */
-.barra-superior::after {
+/* Gradient bottom line */
+.top-bar::after {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -450,17 +458,17 @@ h3 {
     content: "";
 }
 
-.barra-contenido {
+.top-bar-content {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 16px;
-    width: min(100% - 2 * var(--margen-lateral), var(--ancho-contenido));
-    min-height: var(--altura-barra);
+    width: min(100% - 2 * var(--side-margin), var(--content-width));
+    min-height: var(--bar-height);
     margin-inline: auto;
 }
 
-.marca {
+.brand {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -473,34 +481,34 @@ h3 {
     font: inherit;
 }
 
-.marca-icono {
+.brand-icon {
     flex: none;
     width: 44px;
     height: 44px;
     filter: drop-shadow(0 0 8px rgb(255 46 126 / 50%));
-    transition: transform 0.4s var(--curva-rebote);
+    transition: transform 0.4s var(--ease-bounce);
 }
 
-.marca:hover .marca-icono {
+.brand:hover .brand-icon {
     transform: rotate(-8deg) scale(1.06);
 }
 
-.marca-nombre {
+.brand-name {
     font-size: 1.45rem;
     font-weight: 900;
     letter-spacing: -0.02em;
 }
 
-.navegacion {
+.navigation {
     display: flex;
     gap: 4px;
     padding: 5px;
-    border: 1px solid var(--borde-suave);
-    border-radius: var(--radio);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
     background: rgb(18 18 28 / 80%);
 }
 
-.nav-enlace {
+.nav-link {
     position: relative;
     display: flex;
     align-items: center;
@@ -508,111 +516,187 @@ h3 {
     min-height: 42px;
     padding: 0 20px;
     border: 0;
-    border-radius: var(--radio-pequeno);
+    border-radius: var(--radius-small);
     background: transparent;
-    color: var(--texto-suave);
+    color: var(--text-soft);
     font: inherit;
     font-size: 0.95rem;
     font-weight: 800;
-    transition: color 0.2s, background-color 0.25s var(--curva-suave);
+    transition: color 0.2s, background-color 0.25s var(--ease-soft);
 }
 
-.nav-enlace:hover {
-    color: var(--texto);
+.nav-link:hover {
+    color: var(--text);
 }
 
-.nav-enlace[aria-current="page"] {
-    background: var(--superficie-hover);
-    color: var(--texto);
+.nav-link[aria-current="page"] {
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
-.nav-enlace::after {
+.nav-link::after {
     position: absolute;
     right: 20%;
     bottom: 4px;
     left: 20%;
     height: 2px;
     border-radius: 1px;
-    background: linear-gradient(90deg, var(--rosa), var(--amarillo));
+    background: linear-gradient(90deg, var(--pink), var(--yellow));
     content: "";
     transform: scaleX(0);
-    transition: transform 0.3s var(--curva-suave);
+    transition: transform 0.3s var(--ease-soft);
 }
 
-.nav-enlace[aria-current="page"]::after {
+.nav-link[aria-current="page"]::after {
     transform: scaleX(1);
 }
 
-.barra-acciones {
+.top-bar-actions {
     display: flex;
     align-items: center;
     justify-self: end;
     gap: 10px;
 }
 
-.selector-idioma {
-    display: flex;
-    padding: 4px;
-    border: 1px solid var(--borde-suave);
-    border-radius: var(--radio);
+/*
+ * Language toggle: a single button showing the current flag and code. Each
+ * press flips the flag (like a card) to the other language.
+ */
+.language-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
     background: rgb(18 18 28 / 80%);
-}
-
-.boton-idioma {
-    min-width: 38px;
-    min-height: 34px;
-    padding: 0 8px;
-    border: 0;
-    border-radius: var(--radio-pequeno);
-    background: transparent;
-    color: var(--texto-suave);
+    color: var(--text);
     font: inherit;
-    font-size: 1rem;
-    font-weight: 800;
     line-height: 1;
-    transition: background-color 0.2s, color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
-.boton-idioma[aria-pressed="true"] {
-    background: var(--rosa-fuerte);
-    color: #fff;
+.language-toggle:hover {
+    border-color: var(--border);
+    background: var(--surface-hover);
+    box-shadow: inset 0 -2px 0 var(--pink);
 }
 
-/* Cuenta: botón y menú desplegable */
-.cuenta {
+.language-flag {
+    position: relative;
+    display: block;
+    width: 24px;
+    height: 16px;
+    perspective: 80px;
+}
+
+/* Flags drawn in SVG (flag emojis don't show on Windows) */
+.flag {
+    position: absolute;
+    inset: 0;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 14%);
+    backface-visibility: hidden;
+    transition: transform 0.45s var(--ease-bounce);
+}
+
+.flag--en,
+.language-toggle[data-language="en"] .flag--es {
+    transform: rotateY(180deg);
+}
+
+.language-toggle[data-language="en"] .flag--en {
+    transform: none;
+}
+
+.language-code {
+    min-width: 2ch;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.language-swap {
+    color: var(--text-soft);
+    transition: transform 0.3s var(--ease-soft), color 0.2s;
+}
+
+.language-toggle:hover .language-swap {
+    color: var(--pink);
+    transform: rotate(180deg);
+}
+
+/* Account: button (the menu itself lives in deferred.css) */
+.account {
     position: relative;
 }
 
-.boton-cuenta {
+.account-button {
     display: flex;
     align-items: center;
     gap: 10px;
     max-width: 240px;
     min-height: 46px;
     padding: 4px 10px 4px 4px;
-    border: 1px solid var(--borde);
-    border-radius: var(--radio);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     background: rgb(18 18 28 / 80%);
-    color: var(--texto);
+    color: var(--text);
     font: inherit;
     transition: border-color 0.2s, background-color 0.2s;
 }
 
-.boton-cuenta:not(.con-sesion) {
+.account-button:not(.has-session) {
     border-color: rgb(255 46 126 / 55%);
     background: rgb(255 46 126 / 10%);
 }
 
-.boton-cuenta:hover {
-    background: var(--superficie-hover);
+.account-button:hover {
+    background: var(--surface-hover);
 }
 
-.boton-cuenta .avatar {
+.account-button .avatar {
     width: 36px;
     height: 36px;
 }
 
-.cuenta-textos {
+/* Pink badge with the Versus challenges waiting for you */
+.avatar-with-badge {
+    position: relative;
+    display: inline-grid;
+    flex: none;
+}
+
+.badge {
+    display: grid;
+    place-items: center;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--pink-strong);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 0 0 2px var(--background), 0 0 12px rgb(255 46 126 / 70%);
+    animation: pulse 1.8s ease-in-out infinite;
+}
+
+.avatar-with-badge .badge {
+    position: absolute;
+    top: -5px;
+    right: -7px;
+}
+
+@keyframes pulse {
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+.account-texts {
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -620,7 +704,7 @@ h3 {
     text-align: left;
 }
 
-.cuenta-usuario {
+.account-username {
     overflow: hidden;
     font-size: 0.9rem;
     font-weight: 800;
@@ -628,749 +712,103 @@ h3 {
     white-space: nowrap;
 }
 
-.cuenta-puntos {
-    color: var(--amarillo);
+.account-points {
+    color: var(--yellow);
     font-size: 0.74rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
 }
 
-.cuenta-flecha {
+.account-arrow {
     flex: none;
-    color: var(--texto-suave);
-    transition: transform 0.3s var(--curva-suave);
+    color: var(--text-soft);
+    transition: transform 0.3s var(--ease-soft);
 }
 
-.boton-cuenta[aria-expanded="true"] .cuenta-flecha {
+.account-button[aria-expanded="true"] .account-arrow {
     transform: rotate(180deg);
 }
 
 /*
- * Menú de la cuenta: cajón rojizo con el mismo degradado y el mismo borde
- * de neón que la tragaperras, para que el desplegable de la cabecera se vea
- * parte de la misma página. Lleva su propio scroll porque ahora incluye el
- * panel de amigos completo.
+ * The account menu is styled in deferred.css; here it only stays hidden and
+ * anchored to the button until then (unanchored it would widen the page on
+ * phones for a moment and shift the whole layout). Same for Settings.
  */
-.menu-cuenta {
+.account-menu,
+.settings-menu {
     position: absolute;
-    top: calc(100% + 12px);
+    top: 100%;
     right: 0;
-    z-index: 30;
-    width: min(380px, calc(100vw - 2 * var(--margen-lateral)));
-    max-height: min(80dvh, 760px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 18px;
-    border: 1px solid rgb(255 46 126 / 40%);
-    border-radius: var(--radio);
-    background:
-        linear-gradient(180deg, rgb(255 46 126 / 14%), transparent 140px),
-        linear-gradient(170deg, #2c0d24, #17091d 45%, #0c0a18);
-    box-shadow:
-        0 24px 60px rgb(0 0 0 / 65%),
-        0 0 0 1px rgb(255 46 126 / 12%),
-        0 0 44px rgb(255 46 126 / 24%);
+    width: min(340px, calc(100vw - 2 * var(--side-margin)));
+    overflow: hidden;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.97);
-    transform-origin: top right;
-    transition:
-        opacity 0.18s ease,
-        transform 0.28s var(--curva-suave),
-        visibility 0.28s;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(255 46 126 / 45%) transparent;
 }
 
-.menu-cuenta::-webkit-scrollbar {
-    width: 8px;
-}
-
-.menu-cuenta::-webkit-scrollbar-thumb {
-    border-radius: 4px;
-    background: rgb(255 46 126 / 40%);
-}
-
-/* Filo de luz en el canto superior, como el marco de la máquina */
-.menu-cuenta::before {
-    position: absolute;
-    top: 0;
-    right: 14px;
-    left: 14px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--rosa), var(--amarillo), transparent);
-    content: "";
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-.menu-cuenta.abierto {
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-}
-
-.menu-cuenta.sacudir {
-    animation: sacudir 0.4s ease-in-out;
-}
-
-@keyframes sacudir {
-    20%,
-    60% {
-        transform: translateX(-6px);
-    }
-    40%,
-    80% {
-        transform: translateX(6px);
-    }
-}
-
-.menu-titulo {
-    font-size: 1.15rem;
-    font-weight: 900;
-}
-
-.menu-subtitulo {
-    margin: 4px 0 14px;
-    color: var(--texto-suave);
-    font-size: 0.88rem;
-}
-
-.menu-jugador {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.menu-perfil {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.menu-perfil-textos {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.menu-nombre {
-    overflow: hidden;
-    font-size: 1.1rem;
-    font-weight: 900;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.menu-puntos {
-    color: var(--amarillo);
-    font-size: 0.85rem;
-    font-weight: 800;
-}
-
-.menu-estadisticas {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    border-block: 1px solid rgb(255 46 126 / 22%);
-}
-
-.menu-estadisticas div {
-    padding: 8px 4px;
-    text-align: center;
-}
-
-.menu-estadisticas div + div {
-    border-left: 1px solid rgb(255 46 126 / 18%);
-}
-
-.menu-estadisticas dt {
-    color: var(--texto-suave);
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.menu-estadisticas dd {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 900;
-}
-
-.menu-acciones {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.menu-opcion {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 42px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--radio-pequeno);
-    background: transparent;
-    color: var(--texto);
-    font: inherit;
-    font-weight: 700;
-    text-align: left;
-    transition: background-color 0.15s, transform 0.15s;
-}
-
-.menu-opcion svg {
-    color: var(--texto-suave);
-}
-
-.menu-opcion:hover {
-    background: var(--superficie-hover);
-    transform: translateX(2px);
-}
-
-.menu-opcion--salir {
-    color: var(--rojo);
-}
-
-.menu-opcion--salir svg {
-    color: var(--rojo);
-}
-
-/* Código de amigo con botón de copiar */
-.codigo-amigo {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.codigo-fila {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.codigo {
-    padding: 4px 10px;
-    border: 1px dashed var(--borde);
-    border-radius: var(--radio-pequeno);
-    background: var(--fondo);
-    color: var(--turquesa);
-    font-family: var(--fuente-led);
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-}
-
-.boton-copiar {
+.settings {
     position: relative;
-}
-
-.boton-copiar.copiado {
-    border-color: var(--turquesa);
-    color: var(--turquesa);
-    animation: rebote 0.35s var(--curva-rebote);
-}
-
-@keyframes rebote {
-    50% {
-        transform: scale(1.04);
-    }
-}
-
-.boton-copiar.copiado::after {
-    position: absolute;
-    top: -26px;
-    left: 50%;
-    padding: 2px 6px;
-    border-radius: var(--radio-mini);
-    background: var(--turquesa);
-    color: #04241d;
-    font-size: 0.7rem;
-    font-weight: 800;
-    white-space: nowrap;
-    content: "✓";
-    transform: translateX(-50%);
-}
-
-/* ---------- Estructura ---------- */
-main {
-    width: min(100% - 2 * var(--margen-lateral), var(--ancho-contenido));
-    margin-inline: auto;
-    padding: var(--relleno-main) 0;
-}
-
-.pantalla {
-    animation: aparecer 0.45s var(--curva-suave);
-}
-
-@keyframes aparecer {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-}
-
-.tarjeta {
-    border: 1px solid var(--borde);
-    border-radius: var(--radio);
-    background: rgb(18 18 28 / 92%);
-    box-shadow: 0 24px 60px rgb(0 0 0 / 40%);
-}
-
-.insignia {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    padding: 5px 12px;
-    border: 1px solid var(--borde);
-    border-radius: var(--radio-pequeno);
-    background: var(--superficie-2);
-    font-size: 0.8rem;
-    font-weight: 800;
-}
-
-.etiqueta,
-.campo label {
-    color: var(--texto-suave);
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-
-.mensaje {
-    min-height: 1.4em;
-    margin: 0;
-    color: var(--texto-suave);
-    font-size: 0.85rem;
-}
-
-.mensaje.es-error,
-.mensaje--error {
-    color: var(--rojo);
-}
-
-.mensaje:empty {
-    min-height: 0;
-}
-
-.lista-vacia {
-    margin: 0;
-    color: var(--texto-suave);
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-/* ---------- Panel de amigos (dentro del menú de la cuenta) ----------
- * Antes vivía en la pantalla de ranking y sus estilos estaban en
- * estilos-resto.css, que se carga sin bloquear el primer pintado. Como ahora
- * se abre desde la cabecera, todo lo que necesita está aquí para que se vea
- * igual desde el primer instante.
- */
-.desplegable-amigos {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid rgb(255 46 126 / 26%);
-    border-radius: var(--radio);
-    background: rgb(12 8 20 / 55%);
-}
-
-.cabecera-desplegable {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 46px;
-    padding: 10px 12px;
-    border: 0;
-    border-radius: var(--radio);
-    background: transparent;
-    color: var(--texto);
-    font: inherit;
-    font-size: 1rem;
-    font-weight: 900;
-    text-align: left;
-    transition: background-color 0.2s;
-}
-
-.cabecera-desplegable:hover {
-    background: rgb(255 46 126 / 10%);
-}
-
-.cabecera-desplegable-texto {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-}
-
-.cabecera-desplegable-icono {
-    flex: none;
-    color: var(--rosa);
-}
-
-/* Contador de amigos a la derecha de la cabecera */
-.cabecera-desplegable-cuenta {
-    flex: none;
-    min-width: 22px;
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--rosa);
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 900;
-    text-align: center;
-}
-
-.cabecera-desplegable-cuenta:empty {
-    display: none;
-}
-
-.flecha-desplegable {
-    flex: none;
-    color: var(--texto-suave);
-    transition: transform 0.32s var(--curva-suave);
-}
-
-.desplegable-amigos.abierto .flecha-desplegable {
-    transform: rotate(180deg);
 }
 
 /*
- * El contenido se abre y se cierra con una rejilla de 0fr a 1fr (animable).
- * El interior recorta lo que sobra y no lleva relleno vertical: el relleno
- * va en .cuerpo-desplegable, así al plegarse no queda ningún hueco.
+ * A closed drop-down must not catch clicks or focus anywhere: its open
+ * accordion sections set visibility: visible on their own, which would make
+ * them clickable (and invisible) over the slot machine.
  */
-.contenido-desplegable {
-    display: grid;
-    grid-template-rows: 0fr;
-    visibility: hidden;
-    transition: grid-template-rows 0.34s var(--curva-suave), visibility 0.34s;
+.account-menu:not(.is-open),
+.account-menu:not(.is-open) *,
+.settings-menu:not(.is-open),
+.settings-menu:not(.is-open) * {
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
-.desplegable-amigos.abierto .contenido-desplegable {
-    grid-template-rows: 1fr;
-    visibility: visible;
-}
-
-.contenido-desplegable-interior {
-    min-height: 0;
-    overflow: hidden;
-}
-
-.cuerpo-desplegable {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding: 0 12px 12px;
-}
-
-/* Tu código de amigo: cajita destacada dentro del panel */
-.menu-cuenta .codigo-amigo {
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid rgb(25 245 200 / 22%);
-    border-radius: var(--radio-pequeno);
-    background: rgb(25 245 200 / 6%);
-}
-
-.menu-cuenta .codigo-fila {
-    flex-wrap: wrap;
-}
-
-.menu-cuenta .boton-compartir {
-    margin-left: auto;
-}
-
-.formulario-amigo {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.fila-formulario {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.fila-formulario input {
-    flex: 1;
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    padding: 10px 14px;
-    border: 1px solid var(--borde);
-    border-radius: var(--radio);
-    background: rgb(18 18 28 / 90%);
-    color: var(--texto);
-    font: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.fila-formulario input:focus-visible {
-    border-color: var(--turquesa);
-    outline: none;
-    box-shadow: 0 0 0 3px rgb(25 245 200 / 15%);
-}
-
-.lista-amigos {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.lista-amigos:not([data-vacia="true"]) + .lista-vacia,
-.lista-amigos[data-vacia="true"] {
-    display: none;
-}
-
-.fila-amigo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 50px;
-    padding: 8px 4px;
-    border-bottom: 1px solid rgb(255 255 255 / 6%);
-    transition: background-color 0.2s, opacity 0.25s, transform 0.25s;
-}
-
-.fila-amigo:last-child {
-    border-bottom: 0;
-}
-
-.fila-amigo:hover {
-    background: rgb(255 255 255 / 3%);
-}
-
-.lista-amigos.entrando .fila-amigo {
-    animation: aparecer 0.4s var(--curva-suave) both;
-    animation-delay: min(calc(var(--orden, 0) * 32ms), 400ms);
-}
-
-.fila-amigo.saliendo {
-    opacity: 0;
-    transform: translateX(16px);
-}
-
-.fila-amigo .fila-nombre {
-    flex: 1;
-    overflow: hidden;
-    min-width: 0;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.fila-amigo .fila-puntos--suave {
-    flex: none;
-    color: var(--texto-suave);
-    font-size: 0.85rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-}
-
-.boton-quitar {
-    flex: none;
-    opacity: 0.55;
-    transition: opacity 0.2s;
-}
-
-.fila-amigo:hover .boton-quitar,
-.boton-quitar:focus-visible {
-    opacity: 1;
-}
-
-
-/* ---------- Botones ---------- */
-.boton {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    min-height: 46px;
-    padding: 10px 20px;
-    border: 1px solid var(--borde);
-    border-radius: var(--radio);
-    background: var(--superficie-2);
-    color: var(--texto);
-    font: inherit;
-    font-size: 0.92rem;
-    font-weight: 800;
-    text-align: center;
-    transition:
-        transform 0.18s var(--curva-suave),
-        background-color 0.2s,
-        box-shadow 0.25s,
-        filter 0.2s;
-}
-
-.boton:hover:not(:disabled) {
-    background: var(--superficie-hover);
-    transform: translateY(-1px);
-}
-
-.boton:active:not(:disabled) {
-    transform: translateY(1px) scale(0.98);
-    transition-duration: 0.06s;
-}
-
-.boton:disabled {
-    opacity: 0.45;
-}
-
-/* Botón cargando: el texto se atenúa y aparece un círculo girando */
-.boton.cargando {
-    color: transparent;
-}
-
-.boton.cargando::after {
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgb(255 255 255 / 30%);
-    border-top-color: var(--texto);
-    border-radius: 50%;
-    content: "";
-    animation: girar 0.8s linear infinite;
-}
-
-.boton-claro.cargando::after {
-    border-color: rgb(0 0 0 / 20%);
-    border-top-color: #14141f;
-}
-
-.boton-rosa {
-    border-color: var(--rosa-fuerte);
-    background: var(--rosa-fuerte);
-    color: #fff;
-    box-shadow: 0 6px 24px rgb(255 46 126 / 30%);
-}
-
-.boton-rosa:hover:not(:disabled) {
-    background: var(--rosa-fuerte);
-    box-shadow: 0 10px 30px rgb(255 46 126 / 42%);
-    filter: brightness(1.08);
-}
-
-.boton-turquesa {
-    border-color: var(--turquesa);
-    background: var(--turquesa);
-    color: #04241d;
-}
-
-.boton-turquesa:hover:not(:disabled) {
-    background: var(--turquesa);
-    filter: brightness(1.08);
-}
-
-.boton-claro {
-    border-color: #d9d7ea;
-    background: #d9d7ea;
-    color: #14141f;
-}
-
-.boton-claro:hover:not(:disabled) {
-    background: #f0eff8;
-}
-
-.boton-peligro {
-    border-color: var(--rojo);
-    background: #c9173d;
-    color: #fff;
-}
-
-.boton-peligro:hover:not(:disabled) {
-    background: #c9173d;
-    filter: brightness(1.1);
-}
-
-.boton-fantasma {
-    border-color: transparent;
-    background: transparent;
-    color: var(--texto-suave);
-}
-
-.boton-fantasma:hover:not(:disabled) {
-    background: transparent;
-    color: var(--texto);
-}
-
-.boton-pequeno {
-    min-height: 38px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
-}
-
-.boton-ancho {
-    width: 100%;
-}
-
-.boton-archivo:focus-within {
-    outline: 2px solid var(--turquesa);
-    outline-offset: 2px;
-}
-
-.boton-icono {
+.icon-button {
     display: grid;
     flex: none;
     place-items: center;
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 1px solid var(--borde-suave);
-    border-radius: var(--radio);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
     background: rgb(18 18 28 / 80%);
-    color: var(--turquesa);
+    color: var(--teal);
     font-size: 1rem;
-    transition: background-color 0.2s, transform 0.3s var(--curva-rebote);
+    transition: background-color 0.2s, transform 0.3s var(--ease-bounce);
 }
 
-.boton-icono:hover {
-    background: var(--superficie-hover);
+.icon-button:hover {
+    background: var(--surface-hover);
 }
 
-#boton-ajustes:hover svg {
-    transform: scale(1.15);
+#settings-button svg {
+    transition: transform 0.4s var(--ease-bounce);
 }
 
-#boton-ajustes svg {
-    transition: transform 0.25s var(--curva-rebote);
+#settings-button:hover svg {
+    transform: rotate(60deg);
 }
 
-.boton-icono--pequeno {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radio-pequeno);
-}
-
-.botonera {
+/* ---------- Layout ---------- */
+main {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
+    flex: 1;
+    flex-direction: column;
+    width: min(100% - 2 * var(--side-margin), var(--content-width));
+    margin-inline: auto;
+    padding: var(--main-padding) 0;
 }
 
-.botonera--izquierda {
-    justify-content: flex-start;
+/* Screens slide in when shown; the first one is already there under the splash */
+.screen:not(.is-initial) {
+    animation: appear 0.45s var(--ease-soft);
 }
 
-.enlace-peligro {
-    align-self: center;
-    padding: 4px 8px;
-    border: 0;
-    background: none;
-    color: var(--rojo);
-    font: inherit;
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
 }
 
 /* ---------- Avatar ---------- */
@@ -1382,7 +820,7 @@ main {
     height: 32px;
     overflow: hidden;
     border-radius: 50%;
-    background: var(--color-avatar, var(--superficie-hover));
+    background: var(--avatar-color, var(--surface-hover));
     color: #0b0b12;
     font-size: 0.95rem;
     font-weight: 900;
@@ -1395,34 +833,21 @@ main {
     object-fit: cover;
 }
 
-.avatar--mediano {
-    width: 52px;
-    height: 52px;
-    font-size: 1.4rem;
-    box-shadow: 0 0 0 2px var(--superficie), 0 0 0 4px rgb(255 46 126 / 70%);
-}
-
-.avatar--podio {
-    width: 56px;
-    height: 56px;
-    font-size: 1.5rem;
-}
-
-.avatar--podio-grande {
-    width: 72px;
-    height: 72px;
-    font-size: 1.9rem;
-}
-
-/* ---------- Inicio ---------- */
-.pantalla-inicio {
+/* ---------- Home ---------- */
+/*
+ * Desktop: intro and "how to play" on the left, the machine on the right.
+ * Phones: a short headline, the machine straight away (it's what you came
+ * for) and the instructions below it.
+ */
+.home-screen {
     display: grid;
-    align-content: center;
+    grid-template-areas: "intro" "machine" "steps";
     justify-items: center;
-    gap: clamp(28px, 5vw, 48px);
+    gap: clamp(20px, 4vw, 40px);
 }
 
-.portada {
+.home-intro {
+    grid-area: intro;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1430,634 +855,1085 @@ main {
     text-align: center;
 }
 
-.titular {
+.headline {
     display: flex;
     flex-direction: column;
-    font-size: clamp(2.3rem, 5vw, 3.8rem);
+    font-size: clamp(2rem, 5vw, 3.8rem);
     font-weight: 900;
     line-height: 1.02;
     letter-spacing: -0.035em;
 }
 
-.titular-linea {
+.headline-line {
     text-wrap: balance;
-    animation: subir-texto 0.7s var(--curva-suave) both;
 }
 
-.titular-degradado {
+.headline-gradient {
     padding-bottom: 0.08em;
-    background: linear-gradient(90deg, var(--rosa) 0%, #ff7a59 45%, var(--amarillo) 100%);
+    background: linear-gradient(90deg, var(--pink) 0%, #ff7a59 45%, var(--yellow) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    animation-delay: 0.08s;
 }
 
-@keyframes subir-texto {
-    from {
-        opacity: 0;
-        transform: translateY(14px);
-    }
-}
-
-.portada-texto {
+.home-text {
     max-width: 34em;
-    margin: 20px 0 0;
-    color: var(--texto-suave);
+    margin: 18px 0 0;
+    color: var(--text-soft);
     font-size: clamp(1rem, 2.4vw, 1.1rem);
 }
 
-.portada-datos {
+.home-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 22px;
-    margin: 20px 0 0;
-    color: var(--texto-suave);
+    justify-content: center;
+    gap: 6px 20px;
+    margin: 16px 0 0;
+    color: var(--text-soft);
     font-size: 0.95rem;
 }
 
-.portada-datos strong {
-    color: var(--texto);
+.home-stats strong {
+    color: var(--text);
     font-weight: 900;
 }
 
-.pasos {
-    display: grid;
-    gap: 10px;
-    margin: 26px 0 0;
-    padding: 0;
-    list-style: none;
-    text-align: left;
+.how-to-play {
+    grid-area: steps;
+    max-width: 560px;
 }
 
-.pasos li {
+.how-to-play-title {
+    margin-bottom: 12px;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.steps {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.steps li {
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--texto);
     font-size: 0.98rem;
     font-weight: 600;
 }
 
-.paso-numero {
+.step-number {
     display: grid;
     flex: none;
     place-items: center;
     width: 28px;
     height: 28px;
-    border-radius: var(--radio-pequeno);
-    background: linear-gradient(135deg, var(--rosa-fuerte), #ff7a59);
+    border-radius: var(--radius-small);
+    background: linear-gradient(135deg, var(--pink-strong), #ff7a59);
     color: #fff;
     font-size: 0.85rem;
     font-weight: 900;
 }
 
-/* PC: el texto a la izquierda y la tragaperras a la derecha */
+/*
+ * Desktop: text on the left, slot machine on the right, as one block centred
+ * in the space between header and footer (both ways). The text column only
+ * takes the width it needs, so nothing hugs the left edge.
+ */
 @media (min-width: 1000px) {
-    .pantalla-inicio {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 540px);
+    .home-screen {
+        flex: 1;
+        grid-template-areas: "intro machine" "steps machine";
+        grid-template-columns: minmax(0, 520px) minmax(0, 560px);
+        grid-template-rows: auto auto;
+        justify-content: center;
+        align-content: center;
         align-items: center;
-        min-height: var(--alto-util);
-        gap: 64px;
+        justify-items: start;
+        column-gap: 72px;
+        row-gap: 28px;
     }
 
-    .portada {
+    .home-intro {
         align-items: flex-start;
+        align-self: end;
         text-align: left;
     }
+
+    .how-to-play {
+        align-self: start;
+    }
+
+    .home-stats {
+        justify-content: flex-start;
+    }
 }
 
-/* ---------- Tragaperras ---------- */
+/* ---------- Slot machine ---------- */
 /*
- * Mueble con borde degradado neón: arriba el cartel con bombillas, en el
- * frontal los rodillos (se ve el icono del centro y medio por arriba y por
- * abajo), la pantalla LED con el modo, sus teclas y los marcadores; abajo
- * la bandeja de premios. La palanca va pegada al lateral derecho.
+ * Lacquered cabinet with chrome mouldings on the sides. On top the marquee
+ * with a ring of chasing bulbs (an SVG rectangle with evenly spaced round
+ * dots, so the corners are as smooth as the sides) and the neon title. In
+ * front, the three reels behind a chrome frame with glass and their own
+ * ring of lights, the hold/nudge controls, the LED screen and two LED
+ * counters. At the bottom, the coin tray. The lever is bolted to the right
+ * side and is the only way to spin (plus the Space key).
+ * While music plays, --beat (0-1) and --energy (0-1) make it all dance.
  */
-.maquina {
+.slot-machine {
+    --marquee-height: 102px;
+    --cabinet-border: 3px;
+    --front-padding: 14px;
+    --reel-frame: 14px;
+    --mode-color: var(--teal);
+    --beat: 0;
+    --energy: 0;
+    grid-area: machine;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-columns: minmax(0, 1fr) 58px;
     align-items: start;
-    width: min(100%, 540px);
-    animation: maquina-entrar 0.7s var(--curva-suave) 0.1s both;
+    width: min(100%, 560px);
 }
 
-@keyframes maquina-entrar {
+/* Entrance when coming back home (on first load the splash covers it) */
+.home-screen:not(.is-initial) .slot-machine {
+    animation: machine-in 0.7s var(--ease-soft) 0.1s both;
+}
+
+@keyframes machine-in {
     from {
         opacity: 0;
         transform: translateY(18px) scale(0.97);
     }
 }
 
-.maquina-mueble {
+.cabinet {
+    position: relative;
     display: flex;
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
-    border: 2px solid transparent;
-    border-radius: var(--radio);
+    border: var(--cabinet-border) solid transparent;
+    border-radius: var(--radius);
     background:
-        linear-gradient(170deg, #2a0d23, #13091b 40%, #0a131d) padding-box,
-        linear-gradient(135deg, var(--rosa), var(--amarillo) 50%, var(--turquesa)) border-box;
-    box-shadow: 0 0 50px rgb(255 46 126 / 20%), 0 30px 60px rgb(0 0 0 / 50%);
+        linear-gradient(90deg, rgb(255 255 255 / 5%), transparent 14% 86%, rgb(255 255 255 / 5%)) padding-box,
+        linear-gradient(175deg, #3a0f2c, #1d0a22 38%, #0c0d1c) padding-box,
+        linear-gradient(135deg, var(--pink), var(--yellow) 45%, var(--teal)) border-box;
+    box-shadow:
+        0 0 0 1px #000,
+        0 0 calc(60px + var(--beat) * 50px) rgb(255 46 126 / calc(22% + var(--energy) * 25%)),
+        0 0 110px color-mix(in srgb, var(--mode-color) 14%, transparent),
+        0 34px 70px rgb(0 0 0 / 60%);
+    transform: scale(calc(1 + var(--beat) * 0.008));
 }
 
-.maquina-copete {
+/* Chrome mouldings on the cabinet sides */
+.cabinet::before,
+.cabinet::after {
+    position: absolute;
+    top: var(--marquee-height);
+    bottom: 0;
+    z-index: 1;
+    width: 6px;
+    background: linear-gradient(90deg, #5c5c78, #f4f4fb 45%, #8b8ba6 70%, #3a3a52);
+    content: "";
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.cabinet::before {
+    left: 0;
+}
+
+.cabinet::after {
+    right: 0;
+}
+
+/* Marquee */
+.marquee {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 3px;
-    height: 88px;
-    padding-top: 10px;
-    border-bottom: 2px solid #000;
+    gap: 6px;
+    height: var(--marquee-height);
+    padding: 0 26px;
+    border-bottom: 3px solid #000;
     background:
-        radial-gradient(ellipse at center, rgb(255 216 77 / 18%), transparent 70%),
-        linear-gradient(#1c0b17, #0c0810);
+        radial-gradient(ellipse 70% 90% at 50% 40%, rgb(255 46 126 / calc(30% + var(--beat) * 30%)), transparent 70%),
+        repeating-linear-gradient(90deg, rgb(255 255 255 / 3%) 0 2px, transparent 2px 10px),
+        linear-gradient(#26091e, #0d0612);
+    box-shadow: inset 0 -12px 20px rgb(0 0 0 / 50%);
 }
 
-/* Fila de bombillas del cartel: amarillas y rosas que se van persiguiendo */
-.copete-bombillas {
+/*
+ * Ring of bulbs: two rectangles on top of each other drawn with round dots
+ * (zero-length dashes with round caps). pathLength spreads the dots evenly
+ * all the way round, corners included; the second ring is shifted half a
+ * step so yellow and pink alternate, and moving the offset makes them chase.
+ */
+.bulb-ring {
     position: absolute;
-    top: 6px;
-    right: 10px;
-    left: 10px;
-    height: 10px;
-    background:
-        radial-gradient(circle, #ffe98a 0 2.5px, rgb(255 216 77 / 40%) 3.5px, transparent 5px) 0 50% / 18px 10px repeat-x,
-        radial-gradient(circle, #ff8fb8 0 2.5px, rgb(255 46 126 / 40%) 3.5px, transparent 5px) 9px 50% / 18px 10px repeat-x;
-    animation: bombillas 0.9s steps(2) infinite;
-}
-
-.maquina.girando .copete-bombillas {
-    animation-duration: 0.2s;
-}
-
-@keyframes bombillas {
-    to {
-        background-position: 18px 50%, 27px 50%;
-    }
-}
-
-.copete-texto {
-    color: var(--amarillo);
-    font-size: clamp(1.3rem, 3.6vw, 1.7rem);
-    font-weight: 900;
-    letter-spacing: 0.22em;
-    line-height: 1;
-    text-shadow: 0 0 6px rgb(255 216 77 / 80%), 0 0 22px rgb(255 216 77 / 45%);
-}
-
-.copete-texto b {
-    margin: 0 0.25em;
-    color: var(--rosa);
-    text-shadow: 0 0 6px rgb(255 46 126 / 90%), 0 0 22px rgb(255 46 126 / 50%);
-}
-
-.copete-estado {
-    overflow: hidden;
-    max-width: 90%;
-    color: var(--texto);
-    font-size: 0.8rem;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.maquina-frontal {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-}
-
-.rodillos {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 8px;
-    border: 1px solid #000;
-    border-radius: var(--radio-pequeno);
-    background: #07060b;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%), inset 0 8px 18px rgb(0 0 0 / 70%);
-}
-
-.ventana {
-    position: relative;
-    height: var(--altura-ventana);
-    overflow: hidden;
-    border-radius: var(--radio-mini);
-    /* Rodillo claro con sombra de cilindro: oscuro arriba y abajo, brillante en el centro */
-    background: linear-gradient(#6f6a89, #e9e6f7 25%, #fff 50%, #e9e6f7 75%, #6f6a89);
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 35%);
-    transition: box-shadow 0.3s;
-}
-
-/* Sombra encima de los símbolos: los de arriba y abajo se ven curvados y oscuros */
-.ventana::after {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(rgb(10 6 20 / 72%), rgb(10 6 20 / 8%) 30%, transparent 42%, transparent 58%, rgb(10 6 20 / 8%) 70%, rgb(10 6 20 / 72%));
-    content: "";
+    inset: 10px;
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    overflow: visible;
     pointer-events: none;
 }
 
-.rodillo-tira {
-    /* Hueco arriba para que el icono N quede centrado con translateY(-N·alto) */
-    padding-top: calc((var(--altura-ventana) - var(--altura-simbolo)) / 2);
-    will-change: transform;
+.bulbs {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 0 4;
+    animation: chase 0.9s steps(1) infinite;
 }
 
-.maquina.girando .ventana:not(.ventana--parada) .rodillo-tira {
-    filter: blur(1.6px);
+.bulbs--a {
+    stroke: #fff1a8;
+    filter: drop-shadow(0 0 3px var(--yellow));
 }
 
-.ventana--parada {
-    animation: destello 0.6s ease-out;
+.bulbs--b {
+    stroke: #ffc2d8;
+    stroke-dashoffset: 2;
+    filter: drop-shadow(0 0 3px var(--pink));
+    animation-delay: -0.45s;
 }
 
-@keyframes destello {
-    40% {
-        box-shadow: inset 0 0 0 2px var(--acento), 0 0 22px var(--acento);
-    }
-}
-
-.maquina.hay-premio .ventana {
-    box-shadow: inset 0 0 0 2px var(--acento), 0 0 18px color-mix(in srgb, var(--acento) 60%, transparent);
-}
-
-.simbolo {
-    display: grid;
-    place-items: center;
-    height: var(--altura-simbolo);
-    font-size: calc(var(--altura-simbolo) * 0.56);
-    line-height: 1;
-}
-
-/* Línea de premio con flechas a los lados */
-.linea-premio {
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    left: 2px;
-    height: 2px;
-    background: var(--rosa);
-    box-shadow: 0 0 8px var(--rosa);
-    opacity: 0.5;
-    pointer-events: none;
-    transform: translateY(-50%);
-}
-
-.linea-premio::before,
-.linea-premio::after {
-    position: absolute;
-    top: 50%;
-    border: 7px solid transparent;
-    content: "";
-    transform: translateY(-50%);
-}
-
-.linea-premio::before {
-    left: -5px;
-    border-left-color: var(--rosa);
-}
-
-.linea-premio::after {
-    right: -5px;
-    border-right-color: var(--rosa);
-}
-
-.maquina.hay-premio .linea-premio {
-    opacity: 1;
-    animation: parpadeo 0.35s steps(2) 4;
-}
-
-@keyframes parpadeo {
+@keyframes chase {
     50% {
         opacity: 0.25;
     }
 }
 
-/* Pantalla LED del modo con flechas */
-.maquina-display {
-    display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) 40px;
-    align-items: center;
-    gap: 8px;
-    padding: 6px;
-    border: 1px solid #000;
-    border-radius: var(--radio-pequeno);
-    background:
-        repeating-linear-gradient(0deg, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 3px),
-        #050408;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%), inset 0 4px 12px rgb(0 0 0 / 70%);
+.slot-machine.is-spinning .bulbs {
+    animation-duration: 0.2s;
 }
 
-.display-flecha {
-    display: grid;
-    place-items: center;
-    height: 46px;
-    padding: 0;
-    border: 1px solid var(--borde);
-    border-radius: var(--radio-mini);
-    background: linear-gradient(#2a2a3b, #17171f);
-    box-shadow: 0 2px 0 #000;
-    color: var(--amarillo);
-    transition: transform 0.08s, color 0.2s;
+.slot-machine.is-spinning .bulbs--b {
+    animation-delay: -0.1s;
 }
 
-.display-flecha:hover:not(:disabled) {
-    color: #fff;
+/* With music, the bulbs swap colours on every beat */
+.slot-machine.is-dancing .bulbs {
+    animation: none;
+    opacity: calc(0.45 + var(--energy) * 0.55);
 }
 
-.display-flecha:active:not(:disabled) {
-    box-shadow: none;
-    transform: translateY(2px);
+.slot-machine.is-dancing.is-beat-odd .bulbs--a,
+.slot-machine.is-dancing:not(.is-beat-odd) .bulbs--b {
+    opacity: calc(0.15 + var(--beat) * 0.2);
 }
 
-.display-flecha:disabled {
-    opacity: 0.4;
-}
-
-.display-texto {
+/*
+ * Neon title: every letter is its own span (--i = position) so a wave runs
+ * through them, one letter flickers like an old sign and a reflection sweeps
+ * across. While spinning they hop fast; on a prize they jump in the topic
+ * colour. scale follows the music beat (separate from translate/rotate).
+ */
+.marquee-title {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 0;
-    line-height: 1.25;
-    text-align: center;
-}
-
-.display-modo {
+    gap: 0.04em;
     overflow: hidden;
-    max-width: 100%;
-    color: var(--amarillo);
-    font-family: var(--fuente-led);
-    font-size: 1.05rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-overflow: ellipsis;
-    text-shadow: 0 0 8px rgb(255 216 77 / 55%);
-    text-transform: uppercase;
-    white-space: nowrap;
-    animation: led 0.3s var(--curva-suave);
+    padding: 4px 6px 2px;
+    font-size: clamp(1.7rem, 5.4vw, 2.5rem);
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: 0.06em;
+    line-height: 1;
 }
 
-.display-descripcion {
-    overflow: hidden;
-    max-width: 100%;
-    color: var(--texto-suave);
-    font-size: 0.8rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.marquee-letter {
+    display: inline-block;
+    color: #fff4c4;
+    text-shadow:
+        0 0 4px var(--yellow),
+        0 0 14px rgb(255 216 77 / 75%),
+        0 0 calc(30px + var(--beat) * 30px) rgb(255 216 77 / 40%),
+        0 3px 0 #7a3b00;
+    scale: calc(1 + var(--beat) * 0.12);
+    animation: letter-wave 3.6s ease-in-out calc(var(--i) * 0.11s) infinite;
 }
 
-@keyframes led {
-    from {
-        opacity: 0.3;
-        transform: translateY(4px);
+.marquee-letter--pink {
+    color: #ffd1e1;
+    text-shadow:
+        0 0 4px var(--pink),
+        0 0 16px rgb(255 46 126 / 90%),
+        0 0 calc(30px + var(--beat) * 30px) rgb(255 46 126 / 50%),
+        0 3px 0 #6d0630;
+}
+
+/* The last A flickers now and then */
+.marquee-letter:nth-child(9) {
+    animation:
+        letter-wave 3.6s ease-in-out calc(var(--i) * 0.11s) infinite,
+        neon 6s steps(1) infinite;
+}
+
+@keyframes letter-wave {
+    0%,
+    40%,
+    100% {
+        translate: 0 0;
+    }
+    15% {
+        translate: 0 -5px;
     }
 }
 
-/* Teclas de modo: botones físicos con solo el icono */
-.teclas-modo {
-    display: grid;
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    gap: 5px;
-    min-height: 42px;
+@keyframes neon {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    96% {
+        opacity: 0.35;
+    }
+    97% {
+        opacity: 1;
+    }
+    98% {
+        opacity: 0.5;
+    }
 }
 
-.tecla-modo {
+/* Reflection sweeping across the sign */
+.marquee-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 45%) 50%, transparent 65%) -150% 0 / 60% 100% no-repeat;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    animation: shine 5s ease-in-out 1.2s infinite;
+}
+
+@keyframes shine {
+    0% {
+        background-position: -150% 0;
+    }
+    35%,
+    100% {
+        background-position: 250% 0;
+    }
+}
+
+.slot-machine.is-spinning .marquee-letter {
+    animation: letter-hop 0.42s ease-in-out calc(var(--i) * 0.05s) infinite;
+}
+
+@keyframes letter-hop {
+    50% {
+        translate: 0 -6px;
+    }
+}
+
+.slot-machine.has-prize .marquee-letter {
+    animation: letter-prize 0.7s var(--ease-bounce) calc(var(--i) * 0.06s) 3;
+}
+
+@keyframes letter-prize {
+    40% {
+        translate: 0 -9px;
+        rotate: -8deg;
+        color: #fff;
+        text-shadow: 0 0 6px var(--accent), 0 0 22px var(--accent), 0 3px 0 rgb(0 0 0 / 50%);
+    }
+}
+
+.cabinet-front {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: var(--front-padding) calc(var(--front-padding) + 4px);
+}
+
+.reel-labels,
+.reel-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding-inline: calc(var(--reel-frame) + 6px);
+}
+
+.reel-labels {
+    margin-bottom: -4px;
+    color: var(--text-soft);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* Reels behind a chrome frame with screws */
+.reels {
+    --screw: radial-gradient(circle, #f2f2f8 0 1.6px, #4a4a60 2.4px, transparent 3.2px);
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: var(--reel-frame) calc(var(--reel-frame) + 6px);
+    border-radius: var(--radius);
+    background:
+        var(--screw) left 3px top 3px / 8px 8px no-repeat,
+        var(--screw) right 3px top 3px / 8px 8px no-repeat,
+        var(--screw) left 3px bottom 3px / 8px 8px no-repeat,
+        var(--screw) right 3px bottom 3px / 8px 8px no-repeat,
+        linear-gradient(160deg, #f5f5fb, #8e8ea8 22%, #45455c 50%, #b4b4c8 78%, #56566e);
+    box-shadow:
+        0 0 0 1px #000,
+        inset 0 1px 0 rgb(255 255 255 / 60%),
+        0 10px 24px rgb(0 0 0 / 55%);
+}
+
+.reels::before {
+    position: absolute;
+    inset: calc(var(--reel-frame) - 6px) calc(var(--reel-frame) - 2px);
+    border-radius: var(--radius-small);
+    background: #06050a;
+    box-shadow: inset 0 0 0 1px #000, inset 0 0 18px rgb(0 0 0 / 90%);
+    content: "";
+}
+
+/* Ring of lights around the reels, in the colour of the mode */
+.bulb-ring--reels {
+    inset: calc(var(--reel-frame) - 7px) calc(var(--reel-frame) - 3px);
+    width: calc(100% - 2 * (var(--reel-frame) - 3px));
+    height: calc(100% - 2 * (var(--reel-frame) - 7px));
+    z-index: 3;
+}
+
+.bulbs--mode {
+    stroke: color-mix(in srgb, var(--mode-color) 60%, #fff);
+    stroke-width: 4;
+    filter: drop-shadow(0 0 3px var(--mode-color));
+    animation: chase 1.2s steps(1) infinite;
+}
+
+.slot-machine.is-dancing .bulbs--mode {
+    stroke-width: calc(4px + var(--beat) * 2px);
+}
+
+.reel-window {
+    position: relative;
+    z-index: 1;
+    height: var(--window-height);
+    overflow: hidden;
+    border-radius: var(--radius-tiny);
+    /* Light reel with cylinder shading: dark at the top and bottom, bright in the middle */
+    background: linear-gradient(#4d4868, #d9d5ec 22%, #fffdf6 50%, #d9d5ec 78%, #4d4868);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 45%), 0 0 0 1px rgb(255 216 77 / 25%);
+    transition: box-shadow 0.3s;
+}
+
+/* Shadow over the plates: the ones above and below look curved and dark */
+.reel-window::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, rgb(0 0 0 / 28%), transparent 18% 82%, rgb(0 0 0 / 28%)),
+        linear-gradient(rgb(10 6 20 / 80%), rgb(10 6 20 / 10%) 30%, transparent 42%, transparent 58%, rgb(10 6 20 / 10%) 70%, rgb(10 6 20 / 80%));
+    content: "";
+    pointer-events: none;
+}
+
+/* A held reel gets a gold frame and a padlock lamp in its top-right corner */
+.reel.is-held .reel-window {
+    box-shadow: inset 0 0 0 2px var(--yellow), 0 0 14px rgb(255 216 77 / 50%);
+}
+
+.reel.is-held .reel-window::before {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--yellow) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4' fill='none' stroke='%232a1c00' stroke-width='2.6'/%3E%3Crect x='5' y='11' width='14' height='10' rx='2' fill='%232a1c00'/%3E%3C/svg%3E") center / 11px no-repeat;
+    box-shadow: 0 0 8px rgb(255 216 77 / 70%);
+    content: "";
+    animation: lock-pop 0.35s var(--ease-bounce);
+}
+
+@keyframes lock-pop {
+    from {
+        transform: scale(0);
+    }
+}
+
+.reel-strip {
+    /* Space on top so plate N is centred with translateY(-N·height) */
+    padding-top: calc((var(--window-height) - var(--symbol-height)) / 2);
+    will-change: transform;
+}
+
+.slot-machine.is-spinning .reel-window:not(.has-stopped):not(.is-held) .reel-strip {
+    filter: blur(1.6px);
+}
+
+.reel-window.has-stopped {
+    animation: flash 0.6s ease-out;
+}
+
+@keyframes flash {
+    40% {
+        box-shadow: inset 0 0 0 3px var(--accent), 0 0 26px var(--accent);
+    }
+}
+
+.slot-machine.has-prize .reel-window {
+    box-shadow: inset 0 0 0 2px var(--accent), 0 0 20px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+/*
+ * Symbols. Topics and modes are casino chips: the icon on a disc with
+ * notches round the edge in their colour, and the short name printed on the
+ * reel underneath. Multipliers are glowing oval coins with the figure.
+ */
+.symbol {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: var(--symbol-height);
+    padding: 0 4%;
+}
+
+.chip {
     display: grid;
     place-items: center;
-    height: 40px;
-    padding: 0;
-    border: 1px solid #000;
-    border-radius: var(--radio-mini);
-    background: linear-gradient(#2e2e41, #1a1a26);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 3px 0 #07060b;
-    font-size: 1.05rem;
+    width: calc(var(--symbol-height) * 0.58);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 36% 28%, rgb(255 255 255 / 60%), transparent 42%),
+        radial-gradient(circle, color-mix(in srgb, var(--plate-color) 68%, #fff) 0 55%, color-mix(in srgb, var(--plate-color) 60%, #000) 56% 60%, transparent 61%),
+        repeating-conic-gradient(from 15deg, var(--plate-color) 0 30deg, #fffdf6 30deg 45deg);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--plate-color) 50%, #000), 0 3px 6px rgb(0 0 0 / 35%);
+    font-size: calc(var(--symbol-height) * 0.28);
     line-height: 1;
-    transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
 }
 
-.tecla-modo:hover:not(:disabled) {
-    background: linear-gradient(#383850, #1f1f2d);
-    transform: translateY(-1px);
+.symbol-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: color-mix(in srgb, var(--plate-color) 30%, #140c22);
+    font-size: clamp(0.58rem, 1.9vw, 0.72rem);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 55%);
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
-.tecla-modo[aria-checked="true"] {
-    border-color: var(--rosa);
-    background: linear-gradient(#4a1330, #2a0b1c);
-    box-shadow: inset 0 2px 6px rgb(0 0 0 / 60%), 0 0 14px rgb(255 46 126 / 45%);
+.symbol-label[data-length="medium"] {
+    font-size: clamp(0.54rem, 1.7vw, 0.66rem);
+    letter-spacing: 0.03em;
+}
+
+.symbol-label[data-length="long"] {
+    font-size: clamp(0.5rem, 1.5vw, 0.6rem);
+    letter-spacing: 0.01em;
+}
+
+/* The winning chip spins round once when the reels stop on a prize */
+.slot-machine.has-prize .reel-window .symbol:nth-last-child(2) .chip {
+    animation: chip-flip 0.9s var(--ease-soft);
+}
+
+@keyframes chip-flip {
+    from {
+        transform: rotateY(0);
+    }
+    to {
+        transform: rotateY(360deg);
+    }
+}
+
+/* Multiplier chips carry the figure instead of an emoji */
+.symbol--multiplier .chip,
+.symbol--mystery .chip {
+    color: #160f22;
+    font-family: var(--led-font);
+    font-size: calc(var(--symbol-height) * 0.22);
+    font-weight: 900;
+    letter-spacing: -0.06em;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 55%);
+}
+
+.symbol--mystery .chip {
+    color: #fff;
+    font-size: calc(var(--symbol-height) * 0.3);
+    text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+}
+
+/* On a prize the centre chips glow in the topic colour */
+.slot-machine.has-prize .reel-window .symbol:nth-last-child(2) .chip {
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--plate-color) 50%, #000),
+        0 0 0 4px var(--accent),
+        0 0 22px var(--accent);
+}
+
+/* Glass reflection over the reels */
+.reel-glass {
+    position: absolute;
+    inset: var(--reel-frame) calc(var(--reel-frame) + 6px);
+    z-index: 2;
+    border-radius: var(--radius-small);
+    background: linear-gradient(115deg, rgb(255 255 255 / 20%), rgb(255 255 255 / 4%) 28%, transparent 40%, transparent 70%, rgb(255 255 255 / 7%) 78%, transparent 86%);
+    pointer-events: none;
+}
+
+/* Jackpot (×5): the whole machine flashes gold */
+.slot-machine.is-jackpot .cabinet {
+    animation: jackpot 0.5s ease-in-out 4;
+}
+
+@keyframes jackpot {
+    50% {
+        box-shadow: 0 0 0 1px #000, 0 0 90px rgb(255 216 77 / 75%), 0 34px 70px rgb(0 0 0 / 60%);
+    }
+}
+
+/*
+ * Nudge arrows: small tabs on the top and bottom edge of the topic and
+ * mode windows. The up arrow shows the previous symbol, the down one the next.
+ */
+.reel {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.nudge-button {
+    position: absolute;
+    left: 50%;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid rgb(255 216 77 / 35%);
+    background: rgb(12 8 22 / 78%);
+    color: var(--yellow);
+    opacity: 0.8;
+    transform: translateX(-50%);
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s, box-shadow 0.2s, translate 0.12s;
+}
+
+.nudge-button--up {
+    top: 0;
+    border-top: 0;
+    border-radius: 0 0 var(--radius-small) var(--radius-small);
+}
+
+.nudge-button--down {
+    bottom: 0;
+    border-bottom: 0;
+    border-radius: var(--radius-small) var(--radius-small) 0 0;
+}
+
+.nudge-button:hover:not(:disabled),
+.nudge-button:focus-visible {
+    background: rgb(12 8 22 / 92%);
+    color: #fff;
+    opacity: 1;
+    box-shadow: 0 0 12px rgb(255 216 77 / 55%);
+}
+
+.nudge-button--up:active:not(:disabled) {
+    translate: 0 -2px;
+}
+
+.nudge-button--down:active:not(:disabled) {
+    translate: 0 2px;
+}
+
+.nudge-button:disabled {
+    opacity: 0;
+}
+
+/*
+ * HOLD buttons: unlit arcade buttons that light up gold (and snap their
+ * padlock shut) when the reel is held. The third column only says the
+ * multiplier is always left to luck.
+ */
+.hold-button,
+.luck-tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    height: 38px;
+    border-radius: var(--radius-small);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.hold-button {
+    padding: 0 8px;
+    border: 1px solid #000;
+    background: linear-gradient(#2e2b40, #14131d);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), inset 0 0 0 1px rgb(255 216 77 / 16%), 0 4px 0 #000;
+    color: #d8d1a8;
+    transition: transform 0.08s, box-shadow 0.2s, color 0.2s, background 0.2s;
+}
+
+.hold-button:hover:not(:disabled) {
+    color: var(--yellow);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), inset 0 0 0 1px rgb(255 216 77 / 50%), 0 4px 0 #000, 0 0 14px rgb(255 216 77 / 25%);
+}
+
+.hold-button:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 1px 0 #000;
+    transform: translateY(3px);
+}
+
+.hold-button:disabled {
+    opacity: 0.45;
+}
+
+.hold-button[aria-pressed="true"] {
+    background: radial-gradient(ellipse at 50% 0%, #fff6c4, var(--yellow) 45%, #c99a00);
+    box-shadow: 0 0 18px rgb(255 216 77 / 55%), inset 0 -3px 0 rgb(0 0 0 / 22%), 0 2px 0 #000;
+    color: #2a1c00;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 40%);
     transform: translateY(2px);
+    animation: hold-on 0.35s var(--ease-bounce);
 }
 
-.tecla-modo:disabled {
-    opacity: 0.55;
+@keyframes hold-on {
+    40% {
+        transform: translateY(2px) scale(1.06);
+    }
 }
 
-/* Marcadores LED de tema y récord */
-.maquina-marcadores {
+.lock {
+    flex: none;
+    overflow: visible;
+}
+
+/* Open padlock: the shackle is lifted; it snaps shut when held */
+.lock-shackle {
+    transform: translateY(-3px);
+    transition: transform 0.25s var(--ease-bounce);
+}
+
+.hold-button[aria-pressed="true"] .lock-shackle {
+    transform: none;
+}
+
+.luck-tag {
+    border: 1px dashed rgb(255 46 126 / 45%);
+    color: var(--pink);
+}
+
+.luck-tag svg {
+    flex: none;
+    animation: dice 4s ease-in-out infinite;
+}
+
+@keyframes dice {
+    0%,
+    80%,
+    100% {
+        transform: none;
+    }
+    86% {
+        transform: rotate(-20deg);
+    }
+    93% {
+        transform: rotate(15deg);
+    }
+}
+
+/* LED screen with the mode on the second reel (dot grid on top) */
+.mode-screen {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 58px;
+    padding: 8px 12px;
+    border: 1px solid #000;
+    border-radius: var(--radius-small);
+    background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--mode-color) 18%, transparent), transparent 70%), #040307;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%), inset 0 4px 14px rgb(0 0 0 / 80%);
+    line-height: 1.3;
+    text-align: center;
+}
+
+.mode-screen::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle, transparent 0.8px, rgb(0 0 0 / 38%) 1.3px) 0 0 / 3px 3px;
+    content: "";
+    pointer-events: none;
+}
+
+.mode-name {
+    color: var(--mode-color);
+    font-family: var(--led-font);
+    font-size: 1.08rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px color-mix(in srgb, var(--mode-color) 70%, transparent);
+    text-transform: uppercase;
+}
+
+.mode-description {
+    color: #cfcde0;
+    font-size: 0.8rem;
+}
+
+/* LED counters: record of the mode and multiplier */
+.leds {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 
-.marcador-led {
+.led {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border: 1px solid #000;
-    border-radius: var(--radio-mini);
-    background: #050408;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%);
+    border-radius: var(--radius-tiny);
+    background: #040307;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%), inset 0 3px 10px rgb(0 0 0 / 70%);
 }
 
-.marcador-led span {
-    color: var(--texto-suave);
-    font-size: 0.66rem;
+.led span {
+    color: var(--text-soft);
+    font-size: 0.62rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
-.marcador-led strong {
+.led strong {
     overflow: hidden;
-    color: var(--turquesa);
-    font-family: var(--fuente-led);
-    font-size: 1rem;
+    color: var(--yellow);
+    font-family: var(--led-font);
+    font-size: 1.05rem;
     text-overflow: ellipsis;
-    text-shadow: 0 0 8px rgb(25 245 200 / 45%);
+    text-shadow: 0 0 8px rgb(255 216 77 / 50%);
     white-space: nowrap;
 }
 
-.marcador-led--record strong {
-    color: var(--amarillo);
-    text-shadow: 0 0 8px rgb(255 216 77 / 45%);
+.led--multiplier strong {
+    color: var(--pink);
+    text-shadow: 0 0 8px rgb(255 46 126 / 60%);
 }
 
-/* Bandeja de premios con unas monedas */
-.maquina-bandeja {
+/* Prize tray with some coins */
+.coin-tray {
     position: relative;
     height: 30px;
-    margin: 0 12px 12px;
+    margin: 0 18px 14px;
     border: 1px solid #000;
-    border-radius: 0 0 var(--radio-pequeno) var(--radio-pequeno);
-    background: linear-gradient(#030306, #151522);
-    box-shadow: inset 0 6px 10px rgb(0 0 0 / 80%);
+    border-top: 3px solid #9d9db6;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: linear-gradient(#020204, #17172a);
+    box-shadow: inset 0 8px 12px rgb(0 0 0 / 85%), 0 6px 12px rgb(0 0 0 / 40%);
 }
 
-.maquina-bandeja i {
+.coin-tray i {
     position: absolute;
     bottom: 5px;
-    width: 18px;
-    height: 7px;
+    width: 20px;
+    height: 8px;
     border-radius: 50%;
-    background: radial-gradient(ellipse at 40% 30%, #fff6c2, var(--amarillo) 50%, #a17a06);
-    box-shadow: 0 0 6px rgb(255 216 77 / 45%);
+    background: radial-gradient(ellipse at 40% 30%, #fff6c2, var(--yellow) 50%, #a17a06);
+    box-shadow: 0 0 6px rgb(255 216 77 / 50%);
 }
 
-.maquina-bandeja i:nth-child(1) {
-    left: 28%;
+.coin-tray i:nth-child(1) {
+    left: 22%;
 }
 
-.maquina-bandeja i:nth-child(2) {
+.coin-tray i:nth-child(2) {
     bottom: 9px;
-    left: 33%;
+    left: 27%;
 }
 
-.maquina-bandeja i:nth-child(3) {
-    left: 61%;
+.coin-tray i:nth-child(3) {
+    left: 32%;
+    transform: rotate(10deg);
 }
 
-.maquina-bandeja i:nth-child(4) {
-    left: 66%;
+.coin-tray i:nth-child(4) {
+    left: 58%;
+}
+
+.coin-tray i:nth-child(5) {
+    bottom: 9px;
+    left: 63%;
     transform: rotate(-12deg);
 }
 
-/* Al salir premio, las monedas dan un salto */
-.maquina.hay-premio .maquina-bandeja i {
-    animation: moneda 0.6s var(--curva-rebote);
+.coin-tray i:nth-child(6) {
+    left: 69%;
 }
 
-.maquina.hay-premio .maquina-bandeja i:nth-child(even) {
-    animation-delay: 0.1s;
+.slot-machine.has-prize .coin-tray i {
+    animation: coin 0.6s var(--ease-bounce) 2;
 }
 
-@keyframes moneda {
+.slot-machine.has-prize .coin-tray i:nth-child(even) {
+    animation-delay: 0.12s;
+}
+
+@keyframes coin {
     40% {
-        transform: translateY(-10px);
+        transform: translateY(-14px) rotate(20deg);
     }
 }
 
 /*
- * Palanca: un soporte pegado a la máquina, un brazo que sale hacia arriba
- * y una bola roja. Con --tiron = 1 el brazo se da la vuelta hacia abajo
- * (scaleY de 1 a -1) y la bola baja el doble del brazo. Se alinea con el
- * centro de los rodillos.
+ * Lever: a chrome plate bolted to the side, a chrome arm going up and a
+ * shiny red ball. With --pull = 1 the arm flips down (scaleY 1 → -1) and the
+ * ball travels twice the arm. It lines up with the centre of the reels.
+ * While waiting it gives a small tug now and then to invite a pull.
  */
-.palanca {
+.lever {
     position: relative;
-    width: 50px;
-    height: calc(var(--recorrido-palanca) + 44px);
-    /* Borde del mueble + cartel + su borde + relleno del frontal, y media altura de los rodillos */
-    margin-top: calc(2px + 88px + 2px + 12px + (var(--altura-ventana) + 18px) / 2 - (var(--recorrido-palanca) + 44px) / 2);
+    width: 58px;
+    height: calc(var(--lever-travel) + 48px);
+    margin-top: calc(var(--cabinet-border) + var(--marquee-height) + 3px + var(--front-padding) + 22px + (var(--window-height) + 2 * var(--reel-frame)) / 2 - (var(--lever-travel) + 48px) / 2);
     padding: 0;
     border: 0;
     background: none;
     cursor: grab;
     touch-action: none;
-    transition: --tiron 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
+    transition: --pull 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
-.palanca.arrastrando {
+.lever:not(:disabled):not(.is-dragging) {
+    animation: invite 4s ease-in-out 3s infinite;
+}
+
+@keyframes invite {
+    0%,
+    86%,
+    100% {
+        --pull: 0;
+    }
+    90% {
+        --pull: 0.14;
+    }
+    94% {
+        --pull: 0.03;
+    }
+}
+
+.lever.is-dragging {
     cursor: grabbing;
     transition: none;
 }
 
-.palanca:disabled {
-    cursor: var(--cursor-flecha);
-    opacity: 0.55;
+.lever:disabled {
+    cursor: var(--cursor-arrow);
+    opacity: 0.6;
 }
 
-.palanca:focus-visible {
+.lever:focus-visible {
     outline-offset: 0;
-    border-radius: var(--radio);
+    border-radius: var(--radius);
 }
 
-.palanca-soporte {
+.lever-mount {
     position: absolute;
     top: 50%;
     left: 0;
-    width: 20px;
-    height: 46px;
+    width: 22px;
+    height: 58px;
     border: 1px solid #000;
     border-left: 0;
-    border-radius: 0 var(--radio-pequeno) var(--radio-pequeno) 0;
-    background: linear-gradient(90deg, #262638, #4a4a66);
+    border-radius: 0 var(--radius-small) var(--radius-small) 0;
+    background:
+        radial-gradient(circle, #eee 0 1.8px, #444 2.4px, transparent 3px) 50% 8px / 7px 7px no-repeat,
+        radial-gradient(circle, #eee 0 1.8px, #444 2.4px, transparent 3px) 50% calc(100% - 8px) / 7px 7px no-repeat,
+        linear-gradient(90deg, #3a3a52, #d8d8e6 55%, #6d6d88);
+    box-shadow: 4px 4px 10px rgb(0 0 0 / 50%);
     transform: translateY(-50%);
 }
 
-.palanca-brazo {
+.lever-arm {
     position: absolute;
     bottom: 50%;
-    left: 22px;
-    width: 8px;
-    height: calc(var(--recorrido-palanca) * 0.5);
-    border-radius: 3px;
-    background: linear-gradient(90deg, #8a8aa3, #f1f1f7, #8a8aa3);
-    transform: scaleY(calc(1 - 2 * var(--tiron)));
+    left: 23px;
+    width: 10px;
+    height: calc(var(--lever-travel) * 0.5);
+    border-radius: 4px;
+    background: linear-gradient(90deg, #6f6f8a, #fbfbff 45%, #9a9ab2 70%, #55556c);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 50%);
+    transform: scaleY(calc(1 - 2 * var(--pull)));
     transform-origin: bottom;
 }
 
-.palanca-bola {
+.lever-ball {
     position: absolute;
-    top: calc(50% - var(--recorrido-palanca) * 0.5 - 16px);
-    left: 10px;
-    width: 32px;
-    height: 32px;
+    top: calc(50% - var(--lever-travel) * 0.5 - 19px);
+    left: 9px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffb3cd, var(--rosa) 55%, #9c0f45);
-    box-shadow: 0 0 20px rgb(255 46 126 / 60%), 0 4px 10px rgb(0 0 0 / 50%);
-    transform: translateY(calc(var(--tiron) * var(--recorrido-palanca)));
+    background:
+        radial-gradient(circle at 34% 28%, #fff 0 4px, transparent 9px),
+        radial-gradient(circle at 38% 34%, #ff9cc0, var(--pink) 50%, #7d0a37);
+    box-shadow: 0 0 24px rgb(255 46 126 / 65%), 0 6px 12px rgb(0 0 0 / 55%), inset 0 -4px 8px rgb(0 0 0 / 35%);
+    transform: translateY(calc(var(--pull) * var(--lever-travel)));
     transition: filter 0.2s;
 }
 
-.palanca:not(:disabled):hover .palanca-bola {
-    filter: brightness(1.2);
+.lever:not(:disabled):hover .lever-ball {
+    filter: brightness(1.2) saturate(1.1);
 }
 
 /*
- * En pantallas estrechas la máquina se centra sola, pero la palanca ocupa una
- * columna de 50 px a su derecha: el mueble quedaba 25 px descentrado. Aquí la
- * palanca se monta encima del canto derecho del mueble y el frontal aparta ese
- * espacio, así la máquina queda centrada de verdad y la palanca sigue en su
- * sitio, sujetando el mueble por fuera.
+ * On narrow screens the lever is mounted over the cabinet's right edge and
+ * only the reels (at its height) leave room for it, so the machine stays
+ * truly centred and everything else uses the full width.
  */
 @media (max-width: 999px) {
-    :root {
-        --espacio-palanca: 50px;
-    }
-
-    .maquina {
+    .slot-machine {
         position: relative;
         display: block;
-        width: min(100%, 540px);
         margin-inline: auto;
     }
 
-    .maquina-frontal {
-        padding-right: calc(12px + var(--espacio-palanca));
+    .reels,
+    .reel-labels,
+    .reel-controls {
+        margin-right: 40px;
     }
 
-    .palanca {
+    .lever {
         position: absolute;
         top: 0;
         right: 0;
@@ -2065,73 +1941,292 @@ main {
     }
 }
 
-/* ---------- Móvil ---------- */
-@media (max-width: 900px) {
-    :root {
-        --altura-barra: 68px;
+/* ---------- Footer ---------- */
+/*
+ * Full-width bar in three parts: logo, name and version on the left, who
+ * made it in the middle and the copyright on the right. Small uppercase
+ * letter-spaced text; it stacks and centres on phones.
+ */
+.site-footer {
+    border-top: 1px solid var(--border-soft);
+    background: linear-gradient(rgb(13 13 20 / 70%), #0b0b12);
+    color: var(--text-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 14px 24px;
+    width: min(100% - 2 * var(--side-margin), var(--content-width));
+    margin: 0 auto;
+    padding: 18px 0 calc(18px + env(safe-area-inset-bottom));
+}
+
+.footer-content p {
+    margin: 0;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-logo {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--surface);
+    box-shadow: inset 0 -2px 0 rgb(255 46 126 / 40%);
+}
+
+.footer-name {
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    text-transform: none;
+}
+
+.footer-name b {
+    background: linear-gradient(90deg, var(--pink), var(--yellow));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.footer-version {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-tiny);
+    color: var(--text);
+    font-family: var(--led-font);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+.footer-credit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-code {
+    flex: none;
+    color: var(--pink);
+    animation: code-pulse 3s ease-in-out infinite;
+}
+
+@keyframes code-pulse {
+    0%,
+    100% {
+        color: var(--pink);
+        transform: scale(1);
+    }
+    33% {
+        color: var(--teal);
+        transform: scale(1.15);
+    }
+    66% {
+        color: var(--yellow);
+    }
+}
+
+.footer-link {
+    position: relative;
+    padding: 2px 0 4px;
+    text-decoration: none;
+}
+
+/* Each letter cycles yellow → pink → teal, a step behind the previous one */
+.footer-link-text span {
+    display: inline-block;
+    color: var(--yellow);
+    font-weight: 900;
+    animation:
+        credit-colors 4.2s linear infinite,
+        credit-wave 3.5s ease-in-out infinite;
+    animation-delay: calc(var(--i) * -0.3s), calc(var(--i) * 0.07s);
+}
+
+@keyframes credit-colors {
+    0%,
+    100% {
+        color: var(--yellow);
+    }
+    33% {
+        color: var(--pink);
+    }
+    66% {
+        color: var(--teal);
+    }
+}
+
+@keyframes credit-wave {
+    0%,
+    30%,
+    100% {
+        translate: 0 0;
+    }
+    12% {
+        translate: 0 -3px;
+    }
+}
+
+/* Underline: a gradient that keeps sliding along */
+.footer-link::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, var(--yellow), var(--pink), var(--teal), var(--yellow)) 0 0 / 300% 100%;
+    content: "";
+    animation: credit-underline 3s linear infinite;
+    transition: height 0.2s, box-shadow 0.2s;
+}
+
+@keyframes credit-underline {
+    to {
+        background-position: 150% 0;
+    }
+}
+
+.footer-link:hover::after,
+.footer-link:focus-visible::after {
+    height: 3px;
+    box-shadow: 0 0 10px var(--pink);
+}
+
+.footer-link:hover .footer-link-text span {
+    animation-duration: 1.4s, 0.9s;
+}
+
+.footer-rights {
+    justify-self: end;
+    text-align: right;
+}
+
+@media (max-width: 860px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
     }
 
-    .barra-contenido {
+    .footer-rights {
+        justify-self: center;
+        text-align: center;
+    }
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 900px) {
+    :root {
+        --bar-height: 64px;
+    }
+
+    .top-bar-content {
         grid-template-columns: auto 1fr auto;
         gap: 10px;
     }
 
-    .navegacion {
+    .navigation {
         justify-self: center;
     }
 
-    .nav-enlace span {
+    .nav-link span {
         display: none;
     }
 
-    .nav-enlace {
+    .nav-link {
         padding: 0 12px;
     }
 
-    .cuenta-textos,
-    .cuenta-flecha {
+    .account-texts,
+    .account-arrow,
+    .language-swap {
         display: none;
     }
 
-    .boton-cuenta {
+    .language-toggle {
+        padding: 0 10px;
+    }
+
+    .account-button {
         padding: 4px;
     }
 }
 
-@media (max-width: 560px) {
-    .marca-nombre {
+@media (max-width: 600px) {
+    :root {
+        --main-padding: 14px;
+    }
+
+    .brand-name,
+    .home-text {
         display: none;
     }
 
-    .barra-acciones {
+    .top-bar-actions {
         gap: 6px;
     }
 
-    .boton-icono {
+    .icon-button {
         width: 40px;
         height: 40px;
     }
 
-    .boton-idioma {
-        min-width: 30px;
-        padding: 0 4px;
+    .headline {
+        font-size: clamp(1.7rem, 8vw, 2.2rem);
     }
 
-    .teclas-modo {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+    .home-stats {
+        margin-top: 10px;
+        font-size: 0.85rem;
     }
 
-    .caja-foto {
-        flex-direction: column;
-        text-align: center;
+    .slot-machine {
+        --marquee-height: 86px;
+        --front-padding: 10px;
+        --reel-frame: 10px;
     }
 
-    .caja-foto .botonera {
-        justify-content: center;
+    .cabinet-front {
+        padding-left: 12px;
     }
+
+    .marquee {
+        padding: 0 18px;
+    }
+
+    .hold-button,
+    .luck-tag {
+        gap: 5px;
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+    }
+
+    .nudge-button {
+        width: 40px;
+    }
+
 }
 
-/* ---------- Menos movimiento si el sistema lo pide ---------- */
+/*
+ * ---------- Less movement if the system asks for it, or if the player
+ * turned on "Reduce animations" in Settings (the .force-reduced-motion
+ * class on <html>; see settings/settings.ts) ----------
+ */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -2142,8 +2237,26 @@ main {
     }
 
     .splash,
-    .fondo-simbolos,
-    .fondo-suelo {
+    .background-symbols,
+    .background-rain,
+    .background-stars,
+    .background-floor {
         display: none;
     }
+}
+
+:root.force-reduced-motion *,
+:root.force-reduced-motion *::before,
+:root.force-reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+:root.force-reduced-motion .splash,
+:root.force-reduced-motion .background-symbols,
+:root.force-reduced-motion .background-rain,
+:root.force-reduced-motion .background-stars,
+:root.force-reduced-motion .background-floor {
+    display: none;
 }

@@ -1,35 +1,39 @@
 -- =====================================================================
--- QuizMania · Base de datos de Supabase
+-- QuizMania · Supabase database
 --
--- Cómo usarlo: Supabase → SQL Editor → pega este archivo entero → Run.
--- Se puede volver a ejecutar sin perder datos (crea solo lo que falta y
--- reemplaza funciones y políticas).
+-- How to use it: Supabase → SQL Editor → paste this whole file → Run.
+-- It can be run again without losing data (it only creates what's missing
+-- and replaces functions and policies).
 --
--- Contenido:
---   · perfiles    Usuario, avatar y puntos acumulados de cada jugador.
---   · records     Mejor puntuación de cada jugador en cada modo.
---   · partidas    Historial de partidas jugadas.
---   · amistades   Amigos (siempre en los dos sentidos).
---   · Funciones   registrar_partida, ranking, amigos, avatar…
---   · Storage     Bucket público "avatares" (cada uno solo toca su carpeta).
+-- Contents:
+--   · perfiles    Username, avatar and total points of each player.
+--   · records     Best score of each player in each mode.
+--   · partidas    History of played games.
+--   · amistades   Friends (always stored both ways).
+--   · retos       Versus challenges between friends (point-based leagues).
+--   · Functions   registrar_partida, ranking, friends, versus, avatar…
+--   · Storage     Public "avatares" bucket (each player only touches their folder).
 --
--- El login es solo usuario y contraseña: el juego convierte el usuario en
--- un correo interno "<usuario>@quizmania.app" que nunca recibe nada.
--- Las cuentas se confirman solas (trigger confirmar_usuario), pero conviene
--- desactivar también Authentication → Sign In / Providers → Email →
--- "Confirm email": así Supabase no intenta enviar correos (su servidor de
--- correo gratuito solo deja enviar unos pocos por hora).
+-- Login is username and password only: the game turns the username into
+-- an internal e-mail "<username>@quizmania.app" that never receives anything.
+-- Accounts are confirmed automatically (trigger confirmar_usuario), but it's
+-- best to also turn off Authentication → Sign In / Providers → Email →
+-- "Confirm email": that way Supabase doesn't try to send e-mails (its free
+-- mail server only allows a few per hour).
+--
+-- Table, column and function names stay in Spanish on purpose: this is the
+-- schema already deployed, and renaming it would break existing data.
 -- =====================================================================
 
 
 -- ---------------------------------------------------------------------
--- Tablas
+-- Tables
 -- ---------------------------------------------------------------------
 
 create table if not exists public.perfiles (
     id              uuid primary key references auth.users (id) on delete cascade,
     usuario         text not null unique check (usuario ~ '^[a-z0-9_]{3,20}$'),
-    -- null = sin foto; si no, versión de la foto (para no ver una vieja en caché).
+    -- null = no photo; otherwise the photo version (so an old cached one isn't shown).
     avatar_version  integer,
     puntos_totales  bigint  not null default 0,
     partidas        integer not null default 0,
@@ -38,17 +42,24 @@ create table if not exists public.perfiles (
     creado          timestamptz not null default now()
 );
 
--- Nombre visible (el usuario sirve para entrar y para que te añadan de amigo;
--- el nombre es el que se enseña y se puede cambiar). null = se enseña el usuario.
+-- Display name (the username is for logging in and for friends to add you;
+-- the name is what others see and can be changed). null = show the username.
 alter table public.perfiles add column if not exists nombre text
     check (nombre is null or char_length(nombre) between 1 and 24);
 
--- Código de amigo: 6 letras y números sin los que se confunden (sin I, O, 0 ni 1).
--- Se reparte solo al crear el perfil (trigger poner_codigo_amigo).
+-- Friend code: 6 letters and digits without the confusing ones (no I, O, 0 or 1).
+-- Handed out automatically when the profile is created (trigger poner_codigo_amigo).
 alter table public.perfiles add column if not exists codigo text unique
     check (codigo is null or codigo ~ '^[A-HJ-NP-Z2-9]{6}$');
 
+-- Versus: league points (they never expire) and challenge record.
+alter table public.perfiles add column if not exists puntos_liga integer not null default 0;
+alter table public.perfiles add column if not exists victorias   integer not null default 0;
+alter table public.perfiles add column if not exists empates     integer not null default 0;
+alter table public.perfiles add column if not exists derrotas    integer not null default 0;
+
 create index if not exists perfiles_puntos_totales on public.perfiles (puntos_totales desc);
+create index if not exists perfiles_puntos_liga on public.perfiles (puntos_liga desc);
 
 create table if not exists public.records (
     usuario_id   uuid not null references public.perfiles (id) on delete cascade,
@@ -82,16 +93,42 @@ create table if not exists public.amistades (
     check (usuario_id <> amigo_id)
 );
 
+create table if not exists public.retos (
+    id                bigint generated always as identity primary key,
+    retador           uuid not null references public.perfiles (id) on delete cascade,
+    rival             uuid not null references public.perfiles (id) on delete cascade,
+    tema              text not null default '',
+    -- Questions the challenger played, packed: [{e, r: [...], c, i}]
+    preguntas         jsonb not null,
+    puntos_retador    integer not null,
+    aciertos_retador  integer not null,
+    puntos_rival      integer,
+    aciertos_rival    integer,
+    estado            text not null default 'pendiente' check (estado in ('pendiente', 'terminado', 'rechazado')),
+    -- League points each player won (or lost) when it finished.
+    cambio_retador    integer,
+    cambio_rival      integer,
+    creado            timestamptz not null default now(),
+    terminado         timestamptz,
+    check (retador <> rival)
+);
+
+create index if not exists retos_rival on public.retos (rival, estado);
+create index if not exists retos_retador on public.retos (retador, estado);
+
 
 -- ---------------------------------------------------------------------
--- Seguridad (RLS): se puede LEER lo público; todo lo que se ESCRIBE pasa
--- por las funciones de abajo, que validan los datos.
+-- Security (RLS): public data can be READ; everything that is WRITTEN goes
+-- through the functions below, which validate the data.
 -- ---------------------------------------------------------------------
 
 alter table public.perfiles  enable row level security;
 alter table public.records   enable row level security;
 alter table public.partidas  enable row level security;
 alter table public.amistades enable row level security;
+-- Challenges have no policies: they are only read and written by functions
+-- (so nobody sees the questions of a challenge that isn't theirs).
+alter table public.retos     enable row level security;
 
 drop policy if exists "perfiles visibles para todos" on public.perfiles;
 create policy "perfiles visibles para todos" on public.perfiles
@@ -110,11 +147,12 @@ create policy "cada uno ve sus amistades" on public.amistades
     for select to authenticated using (usuario_id = auth.uid());
 
 revoke insert, update, delete on public.perfiles, public.records, public.partidas, public.amistades from anon, authenticated;
+revoke all on public.retos from anon, authenticated;
 
 
 -- ---------------------------------------------------------------------
--- Alta de jugador: al registrarse se crea su perfil con el usuario que
--- manda el juego en los metadatos.
+-- New player: on sign-up their profile is created with the username the
+-- game sends in the metadata.
 -- ---------------------------------------------------------------------
 
 create or replace function public.crear_perfil()
@@ -136,8 +174,8 @@ create trigger al_crear_usuario
     for each row execute function public.crear_perfil();
 
 
--- Confirma las cuentas del juego al crearlas: el correo interno no existe,
--- así que nadie podría pulsar el enlace de confirmación.
+-- Confirms the game's accounts when they're created: the internal e-mail
+-- doesn't exist, so nobody could click the confirmation link.
 create or replace function public.confirmar_usuario()
 returns trigger
 language plpgsql
@@ -152,35 +190,35 @@ begin
 end;
 $$;
 
--- Algunos proyectos no dejan tocar auth.users desde el SQL Editor: si falla,
--- se avisa y el resto del script sigue (en ese caso es imprescindible
--- desactivar "Confirm email").
+-- Some projects don't allow touching auth.users from the SQL Editor: if it
+-- fails, a notice is shown and the rest of the script carries on (then
+-- turning off "Confirm email" is a must).
 do $$
 begin
     execute 'drop trigger if exists al_registrar_confirmar on auth.users';
     execute 'create trigger al_registrar_confirmar before insert on auth.users '
          || 'for each row execute function public.confirmar_usuario()';
 exception when others then
-    raise warning 'QuizMania: no se pudo crear el trigger de confirmación (%). Desactiva "Confirm email".', sqlerrm;
+    raise warning 'QuizMania: could not create the confirmation trigger (%). Turn off "Confirm email".', sqlerrm;
 end;
 $$;
 
--- Cuentas creadas antes de este trigger que se quedaron sin confirmar.
+-- Accounts created before this trigger that were left unconfirmed.
 do $$
 begin
     update auth.users
         set email_confirmed_at = now()
         where email like '%@quizmania.app' and email_confirmed_at is null;
 exception when others then
-    raise warning 'QuizMania: no se pudieron confirmar las cuentas antiguas (%).', sqlerrm;
+    raise warning 'QuizMania: could not confirm the old accounts (%).', sqlerrm;
 end;
 $$;
 
 
--- Genera un código de amigo que no tenga nadie y que además no se parezca al
--- usuario ni al nombre del jugador: el código es una credencial propia, si
--- coincidiera con el nombre no aportaría nada y sería fácil de adivinar.
--- p_usuario y p_nombre son los del jugador que va a recibir el código.
+-- Generates a friend code nobody has that also doesn't look like the
+-- player's username or name: the code is a credential of its own; if it
+-- matched the name it would add nothing and be easy to guess.
+-- p_usuario and p_nombre belong to the player who will receive the code.
 drop function if exists public.generar_codigo_amigo(text, text);
 create function public.generar_codigo_amigo(p_usuario text default null, p_nombre text default null)
 returns text
@@ -193,14 +231,14 @@ declare
     v_codigo   text;
     v_propio   text;
 begin
-    -- Se comparan sin distinguir mayúsculas y sin espacios ni signos.
+    -- Compared ignoring case, spaces and symbols.
     v_propio := upper(regexp_replace(coalesce(p_usuario, '') || coalesce(p_nombre, ''), '[^a-z0-9]', '', 'gi'));
     loop
         v_codigo := '';
         for i in 1..6 loop
             v_codigo := v_codigo || substr(v_alfabeto, 1 + floor(random() * length(v_alfabeto))::int, 1);
         end loop;
-        -- Ni el código de otro jugador, ni el usuario o el nombre de este.
+        -- Neither another player's code, nor this player's username or name.
         exit when not exists (select 1 from public.perfiles where codigo = v_codigo)
               and position(v_codigo in v_propio) = 0;
     end loop;
@@ -224,8 +262,8 @@ create trigger al_crear_perfil_codigo
     before insert on public.perfiles
     for each row execute function public.poner_codigo_amigo();
 
--- Jugadores que ya existían sin código, y los que tenían por código su propio
--- usuario o nombre (se reparan aunque el archivo se ejecute muchas veces).
+-- Players that existed without a code, and those whose code was their own
+-- username or name (repaired however many times the file is run).
 update public.perfiles set codigo = public.generar_codigo_amigo(usuario, nombre)
     where codigo is null
        or upper(regexp_replace(codigo, '[^a-z0-9]', '', 'gi'))
@@ -233,9 +271,9 @@ update public.perfiles set codigo = public.generar_codigo_amigo(usuario, nombre)
        or upper(regexp_replace(codigo, '[^a-z0-9]', '', 'gi'))
         = upper(regexp_replace(coalesce(nombre, ''), '[^a-z0-9]', '', 'gi'));
 
--- Devuelve el código de amigo del jugador que llama, creándolo si el perfil
--- se creó antes de que existiera la columna. Así el juego nunca tiene que
--- inventarse un código ni repetir el usuario.
+-- Returns the calling player's friend code, creating it if the profile was
+-- created before the column existed. That way the game never has to make
+-- up a code or reuse the username.
 drop function if exists public.asegurar_codigo_amigo();
 create function public.asegurar_codigo_amigo()
 returns text
@@ -265,7 +303,7 @@ end;
 $$;
 
 
--- Indica si un nombre de usuario está libre (para avisar antes de registrarse).
+-- Whether a username is free (to warn before signing up).
 create or replace function public.usuario_disponible(p_usuario text)
 returns boolean
 language sql
@@ -277,12 +315,12 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------
--- Partidas y puntos
+-- Games and points
 -- ---------------------------------------------------------------------
 
--- Guarda una partida terminada: suma los puntos al total del jugador y
--- actualiza su récord del modo. Rechaza puntuaciones imposibles.
--- Máximo por acierto: (100 base + 100 racha + 50 rapidez) × 2 (modo Experto) = 500.
+-- Saves a finished game: adds the points to the player's total and
+-- updates their record for the mode. Rejects impossible scores.
+-- Most a hit can be worth: (100 base + 100 streak + 50 speed) × 2 (Double or nothing / Climb) × 5 (slot machine multiplier) = 2500.
 create or replace function public.registrar_partida(
     p_modo text,
     p_tema text,
@@ -303,17 +341,16 @@ begin
     if v_uid is null then
         raise exception 'no-autenticado';
     end if;
-    if p_modo not in ('clasico', 'relampago', 'contrarreloj', 'supervivencia', 'muerte-subita',
-                      'experto', 'ruleta', 'maraton', 'racha', 'todo-o-nada') then
+    if p_modo not in ('clasico', 'contrarreloj', 'supervivencia', 'bomba', 'doble-o-nada', 'relampago', 'muerte-subita', 'cincuenta', 'maraton', 'escalada') then
         raise exception 'modo-no-valido';
     end if;
     if p_total < 0 or p_total > 1000
        or p_aciertos < 0 or p_aciertos > p_total
-       or p_puntos < 0 or p_puntos > p_aciertos * 500
+       or p_puntos < 0 or p_puntos > p_aciertos * 2500
        or length(coalesce(p_tema, '')) > 40 then
         raise exception 'partida-no-valida';
     end if;
-    -- Evita que se envíen partidas en bucle.
+    -- Stops games from being sent in a loop.
     if exists (
         select 1 from public.partidas
         where usuario_id = v_uid and creada > now() - interval '3 seconds'
@@ -351,9 +388,9 @@ end;
 $$;
 
 
--- Clasificación de un modo ('total' = puntos acumulados).
---   p_ambito 'global': los mejores de todos (más tu fila si no estás entre ellos).
---   p_ambito 'amigos': tú y tus amigos (también los que aún no han jugado).
+-- Leaderboard of a mode ('total' = accumulated points).
+--   p_ambito 'global': the best of everyone (plus your row if you're not among them).
+--   p_ambito 'amigos': you and your friends (also those who haven't played yet).
 drop function if exists public.ranking(text, text, integer);
 create function public.ranking(
     p_modo text,
@@ -409,10 +446,10 @@ $$;
 
 
 -- ---------------------------------------------------------------------
--- Amigos (sin grupos: la amistad es entre dos jugadores y es mutua)
+-- Friends (no groups: a friendship is between two players and is mutual)
 -- ---------------------------------------------------------------------
 
--- Añade un amigo por su código de amigo o por su nombre de usuario.
+-- Adds a friend by their friend code or their username.
 create or replace function public.anadir_amigo(p_usuario text)
 returns json
 language plpgsql
@@ -426,7 +463,7 @@ begin
     if v_uid is null then
         raise exception 'no-autenticado';
     end if;
-    -- Primero como código (se ignoran espacios, guiones y #), luego como usuario.
+    -- First as a code (spaces, dashes and # are ignored), then as a username.
     select * into v_amigo from public.perfiles
         where codigo = upper(regexp_replace(coalesce(p_usuario, ''), '[[:space:]#@-]', '', 'g'));
     if v_amigo.id is null then
@@ -452,7 +489,8 @@ begin
         'usuario', v_amigo.usuario,
         'nombre', coalesce(v_amigo.nombre, v_amigo.usuario),
         'avatar_version', v_amigo.avatar_version,
-        'puntos_totales', v_amigo.puntos_totales
+        'puntos_totales', v_amigo.puntos_totales,
+        'puntos_liga', v_amigo.puntos_liga
     );
 end;
 $$;
@@ -475,13 +513,13 @@ $$;
 
 drop function if exists public.mis_amigos();
 create function public.mis_amigos()
-returns table (id uuid, usuario text, nombre text, avatar_version integer, puntos_totales bigint)
+returns table (id uuid, usuario text, nombre text, avatar_version integer, puntos_totales bigint, puntos_liga integer)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-    select p.id, p.usuario, coalesce(p.nombre, p.usuario), p.avatar_version, p.puntos_totales
+    select p.id, p.usuario, coalesce(p.nombre, p.usuario), p.avatar_version, p.puntos_totales, p.puntos_liga
     from public.amistades a
     join public.perfiles p on p.id = a.amigo_id
     where a.usuario_id = auth.uid()
@@ -490,10 +528,294 @@ $$;
 
 
 -- ---------------------------------------------------------------------
--- Nombre visible y foto de perfil
+-- Versus: challenges between friends and leagues
+--
+-- The challenger plays 10 questions first; their questions and points are
+-- saved, and their friend plays exactly the same ones. Whoever scores more
+-- wins. Each player has league points (they never expire, there are no
+-- seasons): win +30, draw +10, loss -15 (never below 0). The league
+-- (Bronze, Silver, Gold…) comes from those points alone.
 -- ---------------------------------------------------------------------
 
--- Cambia el nombre que ven los demás (vacío = volver a enseñar el usuario).
+-- Creates a challenge after playing it. Returns its id.
+create or replace function public.crear_reto(
+    p_rival     uuid,
+    p_tema      text,
+    p_preguntas jsonb,
+    p_puntos    integer,
+    p_aciertos  integer
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_uid    uuid := auth.uid();
+    v_total  integer;
+    v_id     bigint;
+begin
+    if v_uid is null then
+        raise exception 'no-autenticado';
+    end if;
+    if p_rival = v_uid then
+        raise exception 'eres-tu';
+    end if;
+    if not exists (select 1 from public.amistades where usuario_id = v_uid and amigo_id = p_rival) then
+        raise exception 'no-es-amigo';
+    end if;
+    if jsonb_typeof(p_preguntas) is distinct from 'array' then
+        raise exception 'reto-no-valido';
+    end if;
+    v_total := jsonb_array_length(p_preguntas);
+    if v_total < 1 or v_total > 15 or octet_length(p_preguntas::text) > 40000 then
+        raise exception 'reto-no-valido';
+    end if;
+    if p_aciertos < 0 or p_aciertos > v_total or p_puntos < 0 or p_puntos > p_aciertos * 2500 then
+        raise exception 'partida-no-valida';
+    end if;
+    if (select count(*) from public.retos
+        where retador = v_uid and rival = p_rival and estado = 'pendiente') >= 3 then
+        raise exception 'demasiados-retos';
+    end if;
+    if exists (select 1 from public.retos where retador = v_uid and creado > now() - interval '5 seconds') then
+        raise exception 'demasiado-rapido';
+    end if;
+
+    insert into public.retos (retador, rival, tema, preguntas, puntos_retador, aciertos_retador)
+    values (v_uid, p_rival, left(coalesce(p_tema, ''), 40), p_preguntas, p_puntos, p_aciertos)
+    returning id into v_id;
+    return v_id;
+end;
+$$;
+
+-- The player's challenges: pending ones and the latest finished ones. Until
+-- you play a challenge you were sent, you can't see the challenger's points.
+drop function if exists public.mis_retos();
+create function public.mis_retos()
+returns table (
+    id            bigint,
+    soy_retador   boolean,
+    rival_id      uuid,
+    rival_usuario text,
+    rival_nombre  text,
+    rival_avatar  integer,
+    rival_liga    integer,
+    tema          text,
+    estado        text,
+    total         integer,
+    mis_puntos    integer,
+    sus_puntos    integer,
+    mis_aciertos  integer,
+    sus_aciertos  integer,
+    mi_cambio     integer,
+    creado        timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+    select r.id,
+           r.retador = auth.uid(),
+           p.id, p.usuario, coalesce(p.nombre, p.usuario), p.avatar_version, p.puntos_liga,
+           r.tema, r.estado, jsonb_array_length(r.preguntas),
+           case when r.retador = auth.uid() then r.puntos_retador else r.puntos_rival end,
+           case when r.retador = auth.uid() then r.puntos_rival
+                when r.estado = 'terminado' then r.puntos_retador end,
+           case when r.retador = auth.uid() then r.aciertos_retador else r.aciertos_rival end,
+           case when r.retador = auth.uid() then r.aciertos_rival
+                when r.estado = 'terminado' then r.aciertos_retador end,
+           case when r.retador = auth.uid() then r.cambio_retador else r.cambio_rival end,
+           r.creado
+    from public.retos r
+    join public.perfiles p on p.id = case when r.retador = auth.uid() then r.rival else r.retador end
+    where r.retador = auth.uid() or r.rival = auth.uid()
+    order by (r.estado = 'pendiente' and r.rival = auth.uid()) desc,
+             (r.estado = 'pendiente') desc,
+             coalesce(r.terminado, r.creado) desc
+    limit 40;
+$$;
+
+-- Questions of a challenge you were sent (only while it's pending).
+create or replace function public.preguntas_reto(p_reto bigint)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_preguntas jsonb;
+begin
+    if auth.uid() is null then
+        raise exception 'no-autenticado';
+    end if;
+    select preguntas into v_preguntas from public.retos
+        where id = p_reto and rival = auth.uid() and estado = 'pendiente';
+    if v_preguntas is null then
+        raise exception 'reto-no-existe';
+    end if;
+    return v_preguntas;
+end;
+$$;
+
+-- Saves the rival's points, decides who wins and hands out league points.
+create or replace function public.responder_reto(p_reto bigint, p_puntos integer, p_aciertos integer)
+returns json
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_uid        uuid := auth.uid();
+    v_reto       public.retos;
+    v_resultado  text;
+    v_cambio     integer;
+    v_cambio_ret integer;
+    v_rival      public.perfiles;
+    v_retador    public.perfiles;
+    v_nuevo      integer;
+    v_nuevo_ret  integer;
+    v_real       integer;
+    v_real_ret   integer;
+begin
+    if v_uid is null then
+        raise exception 'no-autenticado';
+    end if;
+    select * into v_reto from public.retos where id = p_reto for update;
+    if v_reto.id is null or v_reto.rival <> v_uid then
+        raise exception 'reto-no-existe';
+    end if;
+    if v_reto.estado <> 'pendiente' then
+        raise exception 'reto-terminado';
+    end if;
+    if p_aciertos < 0 or p_aciertos > jsonb_array_length(v_reto.preguntas)
+       or p_puntos < 0 or p_puntos > p_aciertos * 2500 then
+        raise exception 'partida-no-valida';
+    end if;
+
+    if p_puntos > v_reto.puntos_retador then
+        v_resultado := 'victoria'; v_cambio := 30;  v_cambio_ret := -15;
+    elsif p_puntos = v_reto.puntos_retador then
+        v_resultado := 'empate';   v_cambio := 10;  v_cambio_ret := 10;
+    else
+        v_resultado := 'derrota';  v_cambio := -15; v_cambio_ret := 30;
+    end if;
+
+    select * into v_rival from public.perfiles where id = v_uid for update;
+    select * into v_retador from public.perfiles where id = v_reto.retador for update;
+    v_nuevo := greatest(0, v_rival.puntos_liga + v_cambio);
+    v_nuevo_ret := greatest(0, v_retador.puntos_liga + v_cambio_ret);
+    -- What really changes (never below 0).
+    v_real := v_nuevo - v_rival.puntos_liga;
+    v_real_ret := v_nuevo_ret - v_retador.puntos_liga;
+
+    update public.perfiles
+        set puntos_liga = v_nuevo,
+            victorias   = victorias + (v_resultado = 'victoria')::int,
+            empates     = empates   + (v_resultado = 'empate')::int,
+            derrotas    = derrotas  + (v_resultado = 'derrota')::int
+        where id = v_uid
+        returning * into v_rival;
+    update public.perfiles
+        set puntos_liga = v_nuevo_ret,
+            victorias   = victorias + (v_resultado = 'derrota')::int,
+            empates     = empates   + (v_resultado = 'empate')::int,
+            derrotas    = derrotas  + (v_resultado = 'victoria')::int
+        where id = v_reto.retador;
+
+    update public.retos
+        set puntos_rival   = p_puntos,
+            aciertos_rival = p_aciertos,
+            estado         = 'terminado',
+            cambio_rival   = v_real,
+            cambio_retador = v_real_ret,
+            terminado      = now()
+        where id = p_reto;
+
+    return json_build_object(
+        'resultado',      v_resultado,
+        'mis_puntos',     p_puntos,
+        'sus_puntos',     v_reto.puntos_retador,
+        'sus_aciertos',   v_reto.aciertos_retador,
+        'cambio',         v_real,
+        'puntos_liga',    v_rival.puntos_liga,
+        'victorias',      v_rival.victorias,
+        'empates',        v_rival.empates,
+        'derrotas',       v_rival.derrotas
+    );
+end;
+$$;
+
+-- Declines a challenge you were sent, or withdraws one you sent.
+create or replace function public.rechazar_reto(p_reto bigint)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+    if auth.uid() is null then
+        raise exception 'no-autenticado';
+    end if;
+    update public.retos
+        set estado = 'rechazado', terminado = now()
+        where id = p_reto and estado = 'pendiente'
+          and (rival = auth.uid() or retador = auth.uid());
+end;
+$$;
+
+-- League leaderboard (league points), global or among friends.
+drop function if exists public.ranking_liga(text, integer);
+create function public.ranking_liga(p_ambito text default 'global', p_limite integer default 50)
+returns table (
+    posicion        bigint,
+    id              uuid,
+    usuario         text,
+    nombre          text,
+    avatar_version  integer,
+    puntos          bigint,
+    victorias       integer,
+    empates         integer,
+    derrotas        integer,
+    soy_yo          boolean
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+    with base as (
+        select p.id, p.usuario, coalesce(p.nombre, p.usuario) as nombre, p.avatar_version,
+               p.puntos_liga, p.victorias, p.empates, p.derrotas,
+               p.victorias + p.empates + p.derrotas as jugados
+        from public.perfiles p
+        where p_ambito = 'global'
+           or p.id = auth.uid()
+           or p.id in (select a.amigo_id from public.amistades a where a.usuario_id = auth.uid())
+    ),
+    filtrado as (
+        select * from base where p_ambito <> 'global' or jugados > 0
+    ),
+    ordenado as (
+        select f.*, rank() over (order by f.puntos_liga desc, f.victorias desc) as pos
+        from filtrado f
+    )
+    select case when o.jugados = 0 then null else o.pos end,
+           o.id, o.usuario, o.nombre, o.avatar_version, o.puntos_liga::bigint,
+           o.victorias, o.empates, o.derrotas,
+           o.id = auth.uid()
+    from ordenado o
+    where o.pos <= least(greatest(p_limite, 1), 100) or o.id = auth.uid()
+    order by o.jugados = 0, o.puntos_liga desc, o.victorias desc, o.usuario;
+$$;
+
+
+-- ---------------------------------------------------------------------
+-- Display name and profile photo
+-- ---------------------------------------------------------------------
+
+-- Changes the name others see (empty = show the username again).
 create or replace function public.cambiar_nombre(p_nombre text)
 returns text
 language plpgsql
@@ -514,8 +836,8 @@ begin
 end;
 $$;
 
--- Se llama después de subir la foto a storage: sube la versión para
--- que todos vean la nueva.
+-- Called after uploading the photo to storage: bumps the version so
+-- everyone sees the new one.
 create or replace function public.avatar_actualizado()
 returns integer
 language plpgsql
@@ -552,13 +874,13 @@ $$;
 
 
 -- ---------------------------------------------------------------------
--- Borrar la cuenta
+-- Deleting the account
 -- ---------------------------------------------------------------------
 
--- Borra la cuenta del jugador que la llama: su usuario de auth y, en
--- cascada, su perfil, récords, partidas y amistades. (La foto se borra
--- antes desde el juego con la API de Storage, que es la única forma
--- permitida de borrar archivos.)
+-- Deletes the calling player's account: their auth user and, in cascade,
+-- their profile, records, games and friendships. (The photo is deleted
+-- beforehand by the game with the Storage API, the only allowed way to
+-- delete files.)
 create or replace function public.borrar_mi_cuenta()
 returns void
 language plpgsql
@@ -574,7 +896,7 @@ end;
 $$;
 
 
--- Permisos de las funciones.
+-- Function permissions.
 revoke execute on function public.crear_perfil() from public, anon, authenticated;
 revoke execute on function public.confirmar_usuario() from public, anon, authenticated;
 revoke execute on function public.generar_codigo_amigo(text, text) from public, anon, authenticated;
@@ -586,6 +908,12 @@ revoke execute on function public.anadir_amigo(text) from public, anon;
 revoke execute on function public.quitar_amigo(uuid) from public, anon;
 revoke execute on function public.mis_amigos() from public, anon;
 revoke execute on function public.avatar_actualizado() from public, anon;
+revoke execute on function public.asegurar_codigo_amigo() from public, anon;
+revoke execute on function public.crear_reto(uuid, text, jsonb, integer, integer) from public, anon;
+revoke execute on function public.mis_retos() from public, anon;
+revoke execute on function public.preguntas_reto(bigint) from public, anon;
+revoke execute on function public.responder_reto(bigint, integer, integer) from public, anon;
+revoke execute on function public.rechazar_reto(bigint) from public, anon;
 revoke execute on function public.quitar_avatar() from public, anon;
 
 grant execute on function public.usuario_disponible(text) to anon, authenticated;
@@ -599,10 +927,16 @@ grant execute on function public.avatar_actualizado() to authenticated;
 grant execute on function public.quitar_avatar() to authenticated;
 grant execute on function public.cambiar_nombre(text) to authenticated;
 grant execute on function public.borrar_mi_cuenta() to authenticated;
+grant execute on function public.ranking_liga(text, integer) to anon, authenticated;
+grant execute on function public.crear_reto(uuid, text, jsonb, integer, integer) to authenticated;
+grant execute on function public.mis_retos() to authenticated;
+grant execute on function public.preguntas_reto(bigint) to authenticated;
+grant execute on function public.responder_reto(bigint, integer, integer) to authenticated;
+grant execute on function public.rechazar_reto(bigint) to authenticated;
 
 
 -- ---------------------------------------------------------------------
--- Storage: fotos de perfil en "avatares/<id del usuario>/avatar.webp"
+-- Storage: profile photos at "avatares/<user id>/avatar.webp"
 -- ---------------------------------------------------------------------
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -635,7 +969,7 @@ create policy "avatares: borrar de mi carpeta" on storage.objects
 
 
 -- ---------------------------------------------------------------------
--- Avisa a la API de Supabase (PostgREST) de que recargue el esquema, para
--- que las funciones nuevas se puedan usar al momento.
+-- Tells Supabase's API (PostgREST) to reload the schema, so the new
+-- functions can be used right away.
 -- ---------------------------------------------------------------------
 notify pgrst, 'reload schema';

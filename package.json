@@ -1,12 +1,13 @@
 {
   "name": "quizmania",
-  "version": "2.0.0",
-  "description": "Juego de trivia con tragaperras: 30 temas, 10 modos, cuentas con Supabase, amigos y ranking.",
+  "version": "2.1.0",
+  "description": "Slot-machine trivia game: 30 topics, 10 modes, Versus between friends with leagues, Supabase accounts and leaderboards.",
   "scripts": {
     "build": "tsc && node scripts/build.mjs",
     "typecheck": "tsc",
-    "test": "node scripts/pruebas.mjs",
-    "dev": "node scripts/build.mjs && npx http-server dist -g -c-1 -p 8080"
+    "test": "node scripts/run-tests.mjs",
+    "dev": "node scripts/build.mjs && pnpm dlx http-server dist -g -c-1 -p 8080",
+    "check": "node scripts/check.mjs"
   },
   "repository": {
     "type": "git",
@@ -17,16 +18,20 @@
   },
   "homepage": "https://github.com/Jondals/QuizMania#readme",
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^26.6.3",
     "esbuild": "^0.28.2",
+    "playwright-core": "^1.63.0",
     "typescript": "^7.0.2"
   },
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "pnpm": ">=9"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2"
-  }
+  },
+  "packageManager": "pnpm@11.22.0"
 }
